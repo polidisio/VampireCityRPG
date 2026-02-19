@@ -123,3 +123,91 @@ func use_mp(cost: int) -> bool:
 		mp -= cost
 		return true
 	return false
+
+static func create_hunter() -> CharacterData:
+	var enemy = CharacterData.new()
+	enemy.character_name = "Cazador Ángel"
+	enemy.level = 1
+	enemy.max_hp = 50
+	enemy.hp = 50
+	enemy.attack = 8
+	enemy.defense = 3
+	enemy.speed = 7
+	return enemy
+
+static func create_slayer() -> CharacterData:
+	var enemy = CharacterData.new()
+	enemy.character_name = "Slayer"
+	enemy.level = 2
+	enemy.max_hp = 70
+	enemy.hp = 70
+	enemy.attack = 12
+	enemy.defense = 5
+	enemy.speed = 9
+	return enemy
+
+static func create_vampire_hunter() -> CharacterData:
+	var enemy = CharacterData.new()
+	enemy.character_name = "Cazador de Vampiros"
+	enemy.level = 3
+	enemy.max_hp = 90
+	enemy.hp = 90
+	enemy.attack = 15
+	enemy.defense = 8
+	enemy.speed = 11
+	return enemy
+
+static func create_wild_vampire() -> CharacterData:
+	var enemy = CharacterData.new()
+	enemy.character_name = "Vampiro Salvaje"
+	enemy.level = 2
+	enemy.max_hp = 80
+	enemy.hp = 80
+	enemy.attack = 10
+	enemy.defense = 6
+	enemy.speed = 8
+	enemy.skills = [
+		SkillData.create("Golpe Descontrolado", "Daño medio", 12, 0, 0)
+	]
+	return enemy
+
+static func create_noble_vampire() -> CharacterData:
+	var enemy = CharacterData.new()
+	enemy.character_name = "Vampiro Noble"
+	enemy.level = 4
+	enemy.max_hp = 120
+	enemy.hp = 120
+	enemy.attack = 18
+	enemy.defense = 10
+	enemy.speed = 14
+	enemy.skills = [
+		SkillData.create("Golpe Sombrío", "Daño moderado", 15, 0, 5),
+		SkillData.create("Presencia Amenazante", "Reduce defensa", 0, 0, 10)
+	]
+	return enemy
+
+static func get_random_enemy(difficulty: int = 1) -> CharacterData:
+	var enemies: Array[Callable] = []
+	match difficulty:
+		1:
+			enemies = [create_hunter]
+		2:
+			enemies = [create_hunter, create_slayer, create_wild_vampire]
+		3:
+			enemies = [create_slayer, create_vampire_hunter, create_wild_vampire]
+		4, 5:
+			enemies = [create_vampire_hunter, create_noble_vampire]
+		_:
+			enemies = [create_hunter]
+	
+	var idx = randi() % enemies.size()
+	return enemies[idx].call()
+
+static func get_enemy_count_for_difficulty(difficulty: int) -> int:
+	match difficulty:
+		1: return 1
+		2: return randi_range(1, 2)
+		3: return randi_range(2, 3)
+		4: return randi_range(2, 4)
+		5: return randi_range(3, 5)
+		_: return 1

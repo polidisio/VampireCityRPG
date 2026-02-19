@@ -12,6 +12,7 @@ var is_battle_active: bool = false
 var is_player_turn: bool = true
 
 var ui: Control
+var player_inventory: Inventory
 const DEBUG_AUTO_BATTLE = true
 
 func _ready():
@@ -22,8 +23,9 @@ func _ready():
 	else:
 		print("ERROR: UI no encontrada")
 
-func start_battle(player: CharacterData, enemies: Array[CharacterData]):
+func start_battle(player: CharacterData, enemies: Array[CharacterData], inventory: Inventory = null):
 	print("start_battle llamado")
+	player_inventory = inventory
 	player_team = [player]
 	enemy_team = enemies
 	calculate_turn_order()
@@ -164,6 +166,16 @@ func check_battle_end():
 			exp_gained += 25
 		player_team[0].add_exp(exp_gained)
 		ui.add_log("¡Victoria! +%d EXP" % exp_gained)
+		
+		if player_inventory != null:
+			var drops = generate_drops()
+			for drop in drops:
+				player_inventory.add_item(drop)
+				ui.add_log("¡Obtuviste: %s!" % drop.name)
+			var gold_drop = randi_range(5, 20)
+			player_inventory.add_gold(gold_drop)
+			ui.add_log("¡Obtuviste: %d oro!" % gold_drop)
+		
 		battle_ended.emit(true)
 
 func _on_attack_pressed():
@@ -181,3 +193,25 @@ func _on_run_pressed():
 		ui.add_log("¡Escapaste del combate!")
 		is_battle_active = false
 		battle_ended.emit(false)
+
+func generate_drops() -> Array[ItemData]:
+	var drops: Array[ItemData] = []
+	var roll = randf()
+	
+	if roll < 0.3:
+		var consumables = ItemData.get_all_consumables()
+		drops.append(consumables[randi() % consumables.size()])
+	elif roll < 0.5:
+		var weapons = ItemData.get_all_weapons()
+		if randf() < 0.3:
+			drops.append(weapons[randi() % weapons.size()])
+	elif roll < 0.7:
+		var armors = ItemData.get_all_armors()
+		if randf() < 0.3:
+			drops.append(armors[randi() % armors.size()])
+	
+	if randf() < 0.2:
+		var consumables = ItemData.get_all_consumables()
+		drops.append(consumables[randi() % consumables.size()])
+	
+	return drops
