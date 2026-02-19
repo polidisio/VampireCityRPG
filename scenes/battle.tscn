@@ -1,0 +1,82 @@
+[gd_scene load_steps=3 format=3 uid="uid://battle_scene"]
+
+[ext_resource type="Script" path="res://scripts/battle_system.gd" id="1_battle"]
+[ext_resource type="Script" path="res://scripts/battle_ui.gd" id="2_ui"]
+
+[node name="BattleSystem" type="Node2D"]
+script = ExtResource("1_battle")
+
+[node name="BattleUI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_ui")
+
+[node name="Panel" type="Panel" parent="BattleUI"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -80.0
+offset_right = 150.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="VBox" type="VBoxContainer" parent="BattleUI/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="PlayerHP" type="Label" parent="BattleUI/Panel/VBox"]
+layout_mode = 2
+text = "HP: 100/100"
+
+[node name="PlayerMP" type="Label" parent="BattleUI/Panel/VBox"]
+layout_mode = 2
+text = "MP: 50/50"
+
+[node name="EnemyHP" type="Label" parent="BattleUI/Panel/VBox"]
+layout_mode = 2
+text = "Enemy HP: 50/50"
+
+[node name="Menu" type="VBoxContainer" parent="BattleUI/Panel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -30.0
+offset_right = 60.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AttackBtn" type="Button" parent="BattleUI/Panel/Menu"]
+layout_mode = 2
+text = "Atacar"
+
+[node name="SkillBtn" type="Button" parent="BattleUI/Panel/Menu"]
+layout_mode = 2
+text = "Habilidad"
+
+[node name="RunBtn" type="Button" parent="BattleUI/Panel/Menu"]
+layout_mode = 2
+text = "Huir"
+
+[connection signal="pressed" from="BattleUI/Panel/Menu/AttackBtn" to="." method="_on_attack_pressed"]
+[connection signal="pressed" from="BattleUI/Panel/Menu/SkillBtn" to="." method="_on_skill_pressed"]
+[connection signal="pressed" from="BattleUI/Panel/Menu/RunBtn" to="." method="_on_run_pressed"]
