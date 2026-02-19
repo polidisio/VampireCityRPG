@@ -17,7 +17,7 @@ var attack: int = 10
 var defense: int = 5
 var speed: int = 10
 
-var skills: Array[SkillData] = []
+var skills: Array = []
 var equipment: Dictionary = {
 	"weapon": null,
 	"armor": null,

@@ -52,29 +52,29 @@ func calculate_turn_order():
 	turn_order.sort_custom(func(a, b): return a.character.speed > b.character.speed)
 
 func next_turn():
-    if not is_battle_active:
-        return
-    
-    current_turn_index = (current_turn_index + 1) % turn_order.size()
-    var current_actor = turn_order[current_turn_index]
-    
-    if current_actor.character.hp <= 0:
-        next_turn()
-        return
-    
-    is_player_turn = not current_actor.is_enemy
-    turn_changed.emit(current_actor.character.character_name)
-    
-    if is_player_turn:
-        ui.show_player_menu()
-        if DEBUG_AUTO_BATTLE:
-            # Auto-advance player's turn after a short delay for debugging
-            await get_tree().create_timer(0.3).timeout
-            if is_battle_active:
-                player_attack(0)
-    else:
-        await get_tree().create_timer(1.0).timeout
-        enemy_turn()
+	if not is_battle_active:
+		return
+	
+	current_turn_index = (current_turn_index + 1) % turn_order.size()
+	var current_actor = turn_order[current_turn_index]
+	
+	if current_actor.character.hp <= 0:
+		next_turn()
+		return
+	
+	is_player_turn = not current_actor.is_enemy
+	turn_changed.emit(current_actor.character.character_name)
+	
+	if is_player_turn:
+		ui.show_player_menu()
+		if DEBUG_AUTO_BATTLE:
+			# Auto-advance player's turn after a short delay for debugging
+			await get_tree().create_timer(0.3).timeout
+			if is_battle_active:
+				player_attack(0)
+	else:
+		await get_tree().create_timer(1.0).timeout
+		enemy_turn()
 
 func player_attack(target_index: int):
 	if not is_player_turn or not is_battle_active:
