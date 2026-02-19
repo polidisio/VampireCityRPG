@@ -12,7 +12,7 @@ var is_battle_active: bool = false
 var is_player_turn: bool = true
 
 var ui: Control
-const DEBUG_AUTO_BATTLE = false
+const DEBUG_AUTO_BATTLE = true
 
 func _ready():
 	ui = $BattleUI
