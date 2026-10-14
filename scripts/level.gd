@@ -11,6 +11,12 @@ var quests := QuestLog.new()
 var nearby: Callable
 var msg: Label
 var current_enemy: Area2D
+var floor_size := Vector2(320, 180)
+var start_pos := Vector2(160, 100)
+var blocked: Array[Rect2] = [] # paredes/pilares del piso actual (para no spawnear encima)
+var ground: TextureRect
+var cam: Camera2D
+var floor_label: Label
 
 func _ready():
 	battle_system.battle_ended.connect(_on_battle_ended)
@@ -25,16 +31,30 @@ func _ready():
 		floor_num = saved[2]
 		max_floor = saved[3]
 		quests = saved[4]
-	var ground = TextureRect.new()
+	ground = TextureRect.new()
 	ground.texture = load("res://assets/sprites/tile_0000.png")
 	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ground.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ground.stretch_mode = TextureRect.STRETCH_TILE
-	ground.size = Vector2(320, 180)
 	add_child(ground)
 	move_child(ground, 1) # sobre Background, bajo todo lo demás
+	cam = Camera2D.new()
+	cam.limit_left = 0
+	cam.limit_top = 0
+	player.add_child(cam)
+	# HUD fijo en pantalla (la cámara se mueve en los pisos grandes)
+	var hud = CanvasLayer.new()
+	add_child(hud)
+	var help: Label = $Label
+	floor_label = $FloorLabel
 	msg = Label.new()
-	msg.position = Vector2(10, 134)
-	add_child(msg)
+	msg.position = Vector2(10, 150)
+	for l in [help, floor_label, msg]:
+		if l.get_parent():
+			l.reparent(hud, false)
+		else:
+			hud.add_child(l)
+		l.add_theme_font_size_override("font_size", 8)
 	_spawn_floor()
 
 func _show_class_select():
@@ -124,29 +144,85 @@ func _go_floor(n: int):
 	_clear_floor()
 	floor_num = n
 	max_floor = maxi(max_floor, n)
-	player.position = Vector2(160, 100)
 	_spawn_floor()
 	_save()
 
-func _free_pos() -> Vector2:
-	# ponytail: posición aleatoria lejos del jugador (160,100)
-	var p = Vector2(160, 100)
-	while p.distance_to(Vector2(160, 100)) < 50:
-		p = Vector2(randf_range(20, 300), randf_range(30, 140))
+func _add_block(r: Rect2, tile: int):
+	var b = StaticBody2D.new()
+	b.position = r.position
+	var cs = CollisionShape2D.new()
+	cs.shape = RectangleShape2D.new()
+	cs.shape.size = r.size
+	cs.position = r.size / 2
+	var t = TextureRect.new()
+	t.texture = load("res://assets/sprites/tile_%04d.png" % tile)
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_TILE
+	t.size = r.size
+	b.add_child(t)
+	b.add_child(cs)
+	b.add_to_group("floor_obj")
+	add_child(b)
+	blocked.append(r)
+
+# Un bloque cabe si está dentro del margen, lejos del inicio y con >=24px de paso respecto a los demás.
+func _placeable(r: Rect2) -> bool:
+	return Rect2(48, 48, floor_size.x - 96, floor_size.y - 96).encloses(r) \
+		and not r.grow(64).has_point(start_pos) \
+		and not blocked.any(func(o): return o.intersects(r.grow(24)))
+
+func _build_walls():
+	var w = floor_size.x
+	var h = floor_size.y
+	for r in [Rect2(0, 0, w, 16), Rect2(0, h - 16, w, 16), Rect2(0, 16, 16, h - 32), Rect2(w - 16, 16, 16, h - 32)]:
+		_add_block(r, 57)
+	if floor_num == 0:
+		return
+	# ponytail: obstáculos aleatorios con separación mínima, así nunca bloquean el paso
+	for i in 3:
+		var seg = randi_range(5, 8) * 16
+		var size = Vector2(seg, 16) if randf() < 0.5 else Vector2(16, seg)
+		var r = Rect2(Vector2(randi_range(3, int(w / 16) - 4), randi_range(3, int(h / 16) - 4)) * 16, size)
+		if _placeable(r):
+			_add_block(r, 57)
+	for i in 40:
+		var r = Rect2(Vector2(randi_range(3, int(w / 16) - 4), randi_range(3, int(h / 16) - 4)) * 16, Vector2(16, 16))
+		if _placeable(r):
+			_add_block(r, [64, 65, 82].pick_random())
+
+func _free_pos(area: Rect2, avoid: Vector2 = start_pos, min_dist: float = 100.0) -> Vector2:
+	var p = area.get_center()
+	for i in 60:
+		p = Vector2(randf_range(area.position.x, area.end.x), randf_range(area.position.y, area.end.y))
+		if p.distance_to(avoid) >= min_dist and not blocked.any(func(r): return r.grow(14).has_point(p)):
+			break
 	return p
 
 func _spawn_floor():
-	if floor_num == 0:
-		$FloorLabel.text = "HUB - PISO MAX %d" % max_floor
+	blocked.clear()
+	var tower = floor_num > 0
+	floor_size = Vector2(640, 360) if tower else Vector2(320, 180)
+	start_pos = Vector2(48, 180) if tower else Vector2(160, 100)
+	ground.size = floor_size
+	$Background.size = floor_size
+	cam.limit_right = int(floor_size.x)
+	cam.limit_bottom = int(floor_size.y)
+	player.position = start_pos
+	_build_walls()
+	if not tower:
+		floor_label.text = "HUB - PISO MAX %d" % max_floor
 		_make_area(112, 16, Vector2(80, 70), _open_shop, "E: Tienda")
 		_make_area(99, 16, Vector2(240, 70), _rest, "E: Descansar (10 oro)")
 		_make_area(86, 16, Vector2(160, 40), _talk, "E: Hablar con el Anciano")
 		_make_area(45, 16, Vector2(160, 150), func(_a): _go_floor(max_floor))
 		return
-	$FloorLabel.text = "PISO %d  (H: hub)" % floor_num
-	for n in randi_range(2, 4):
-		_make_area([108, 120, 121, 122].pick_random(), 14, _free_pos(), try_start_battle)
-	_make_area(109, 24, _free_pos(), try_start_battle).set_meta("boss", true)
+	floor_label.text = "PISO %d  (H: hub)" % floor_num
+	var w = floor_size.x
+	var h = floor_size.y
+	for n in randi_range(4, 7):
+		_make_area([108, 120, 121, 122].pick_random(), 14, _free_pos(Rect2(120, 32, w - 152, h - 64)), try_start_battle)
+	_make_area(109, 24, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle).set_meta("boss", true)
 
 func _open_shop():
 	busy = true
@@ -223,8 +299,9 @@ func _on_battle_ended(victory: bool):
 		quests.add("kill", battle_system.enemy_team.size())
 		if current_enemy.has_meta("boss"):
 			quests.add("boss")
-			# lejos del jugador (está pegado al jefe) para no activar las escaleras al instante
-			var pos = (current_enemy.position + (current_enemy.position - player.position).normalized() * 40).clamp(Vector2(15, 25), Vector2(305, 145))
+			# cerca del jefe pero a >=32px del jugador (está pegado al jefe) para no activar las escaleras al instante
+			var near = Rect2(current_enemy.position - Vector2(48, 48), Vector2(96, 96)).intersection(Rect2(32, 32, floor_size.x - 64, floor_size.y - 64))
+			var pos = _free_pos(near, player.position, 32.0)
 			_make_area(45, 16, pos, func(_a): _go_floor(floor_num + 1))
 			msg.text = "¡Jefe derrotado! Baja por las escaleras"
 		current_enemy.queue_free()
@@ -241,5 +318,5 @@ func _on_battle_ended(victory: bool):
 func _on_battle_fled():
 	_end_battle()
 	# ponytail: empuja al jugador fuera del enemigo para no re-disparar
-	player.position += (player.position - current_enemy.position).normalized() * 24
+	player.move_and_collide((player.position - current_enemy.position).normalized() * 24)
 	_save()
