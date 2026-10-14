@@ -1,0 +1,2 @@
+Sprites: Kenney "Tiny Dungeon"; audio: Kenney "Impact Sounds", "RPG Audio", "Music Jingles".
+All by Kenney (www.kenney.nl), licensed CC0 (public domain).

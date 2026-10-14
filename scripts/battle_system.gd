@@ -101,6 +101,7 @@ func player_attack(target_index: int):
 	var target = enemy_team[target_index]
 	
 	var actual_damage = target.take_damage(_power(attacker, attacker.attack))
+	Sfx.play(self, "hit")
 	
 	ui.add_log("%s ataca a %s por %d daños!" % [attacker.character_name, target.character_name, actual_damage])
 	# Update UI stats after attack
@@ -144,6 +145,7 @@ func enemy_turn():
 		_use_skill(enemy, skill, target)
 	else:
 		var actual_damage = target.take_damage(_power(enemy, enemy.attack))
+		Sfx.play(self, "hurt")
 		ui.add_log("%s ataca a %s por %d daños!" % [enemy.character_name, target.character_name, actual_damage])
 	# Update UI stats after enemy turn
 	if ui:
@@ -157,6 +159,7 @@ func _power(user: CharacterData, base: int) -> int:
 	return int(base * 1.5) if user.has_status("furia") else base
 
 func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
+	Sfx.play(self, "heal" if skill.is_heal or skill.on_self else "skill")
 	if skill.is_heal:
 		user.heal(skill.heal)
 		ui.add_log("%s usa %s y recupera %d HP!" % [user.character_name, skill.name, skill.heal])
@@ -184,6 +187,7 @@ func check_battle_end():
 	if all_dead:
 		is_battle_active = false
 		ui.add_log("¡Has perdido!")
+		Sfx.play(self, "defeat")
 		battle_ended.emit(false)
 		return
 	
@@ -200,6 +204,7 @@ func check_battle_end():
 			exp_gained += 25
 		player_team[0].add_exp(exp_gained)
 		ui.add_log("¡Victoria! +%d EXP" % exp_gained)
+		Sfx.play(self, "victory")
 		
 		if player_inventory != null:
 			var drops = generate_drops()

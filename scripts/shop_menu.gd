@@ -54,11 +54,13 @@ func _unhandled_input(event):
 
 func _buy(item: ItemData):
 	if inventory.spend_gold(item.value):
+		Sfx.play(self, "coins")
 		inventory.add_item(ItemData.find_by_id(item.id))
 		refresh()
 
 func _sell(item: ItemData):
-	inventory.add_gold(item.value / 2)
+	Sfx.play(self, "coins")
+	inventory.add_gold(int(item.value * 0.5))
 	inventory.remove_item(item)
 	refresh()
 
@@ -68,6 +70,6 @@ func refresh():
 		n.queue_free()
 	for item in inventory.items:
 		var b = Button.new()
-		b.text = "%s %d" % [item.name, item.value / 2]
+		b.text = "%s %d" % [item.name, int(item.value * 0.5)]
 		b.pressed.connect(_sell.bind(item))
 		sell_list.add_child(b)

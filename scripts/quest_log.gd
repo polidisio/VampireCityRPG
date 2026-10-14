@@ -28,8 +28,8 @@ func to_dict() -> Dictionary:
 	return {"counters": counters, "claimed": claimed}
 
 static func from_dict(d: Dictionary) -> QuestLog:
-	var log = QuestLog.new()
-	for k in log.counters:
-		log.counters[k] = int(d.get("counters", {}).get(k, 0))
-	log.claimed = d.get("claimed", [])
-	return log
+	var ql = QuestLog.new()
+	for k in ql.counters:
+		ql.counters[k] = int(d.get("counters", {}).get(k, 0))
+	ql.claimed = d.get("claimed", [])
+	return ql

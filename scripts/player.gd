@@ -1,7 +1,15 @@
 extends CharacterBody2D
 
 const SPEED = 60.0
-var character_data: CharacterData
+const CLASS_TILES = {
+	CharacterData.ClassType.NOBLE: 100, CharacterData.ClassType.SALVAJE: 87,
+	CharacterData.ClassType.DHAMPIR: 88, CharacterData.ClassType.HEMOMANTE: 84}
+
+var character_data: CharacterData:
+	set(v):
+		character_data = v
+		if is_node_ready():
+			update_sprite()
 
 @onready var sprite = $Sprite2D
 @onready var collision = $CollisionShape2D
@@ -11,11 +19,11 @@ var direction: Vector2 = Vector2.DOWN
 
 func _ready():
 	position = Vector2(160, 100)
-	update_sprite_color()
+	update_sprite()
 
-func update_sprite_color():
-	var color = Color(0.8, 0.2, 0.2)
-	sprite.modulate = color
+func update_sprite():
+	var tile = CLASS_TILES[character_data.class_type] if character_data else 100
+	sprite.texture = load("res://assets/sprites/tile_%04d.png" % tile)
 
 func _physics_process(_delta):
 	var input_direction = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")

@@ -109,7 +109,7 @@ static func class_skills(c: ClassType) -> Array:
 			SkillData.create("Orgullo Ancestral", "Aumenta tu ataque", 0, 0, 14).with_status("furia", 3, true).at_level(7)]
 
 func sync_skills():
-	skills = class_skills(class_type).filter(func(sk): return sk.unlock_level <= level)
+	skills = CharacterData.class_skills(class_type).filter(func(sk): return sk.unlock_level <= level)
 
 func has_status(s: String) -> bool:
 	return statuses.has(s)
@@ -121,7 +121,7 @@ func add_status(s: String, turns: int):
 func tick_statuses() -> Array[String]:
 	var lines: Array[String] = []
 	if has_status("sangrado"):
-		var d = maxi(1, max_hp / 10)
+		var d = maxi(1, int(max_hp * 0.1))
 		hp = maxi(0, hp - d)
 		lines.append("%s sangra (-%d HP)" % [character_name, d])
 	for s in statuses.keys():

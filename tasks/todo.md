@@ -21,8 +21,8 @@ Fase 3 es grande: la divido en 3a/3b/3c, una por sesión/commit.
 **3b Contenido:**
 3. [x] Diálogos + misiones: NPC en hub (`DialogBox` simple + `QuestData`: "mata N enemigos / derrota jefe del piso X", recompensa oro/objeto), progreso guardado en save.
 **3c Pulido:**
-4. Sonido: SFX/música con `AudioStreamPlayer` (necesito archivos: ¿Kenney/CC0?).
-5. Arte: sprites (Kenney/propio/IA) reemplazando ColorRect.
+4. [x] Sonido: SFX/música con `AudioStreamPlayer` (necesito archivos: ¿Kenney/CC0?).
+5. [x] Arte: sprites (Kenney/propio/IA) reemplazando ColorRect.
 6. Export Android/iOS (necesita plantillas de export + keystore, lo haces tú o te guío).
 
 ## Notas de sesión (2026-10-14)

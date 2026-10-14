@@ -25,6 +25,13 @@ func _ready():
 		floor_num = saved[2]
 		max_floor = saved[3]
 		quests = saved[4]
+	var ground = TextureRect.new()
+	ground.texture = load("res://assets/sprites/tile_0000.png")
+	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ground.stretch_mode = TextureRect.STRETCH_TILE
+	ground.size = Vector2(320, 180)
+	add_child(ground)
+	move_child(ground, 1) # sobre Background, bajo todo lo demás
 	msg = Label.new()
 	msg.position = Vector2(10, 134)
 	add_child(msg)
@@ -80,16 +87,16 @@ func _open_inventory():
 		_save())
 	add_child(menu)
 
-func _make_area(color: Color, size: Vector2, pos: Vector2, on_enter: Callable, hint: String = "") -> Area2D:
+func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: String = "") -> Area2D:
 	var a = Area2D.new()
-	var r = ColorRect.new()
-	r.size = size
-	r.position = -size / 2
-	r.color = color
+	var spr = Sprite2D.new()
+	spr.texture = load("res://assets/sprites/tile_%04d.png" % tile)
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.scale = Vector2.ONE * size / 16.0
 	var cs = CollisionShape2D.new()
 	cs.shape = RectangleShape2D.new()
-	cs.shape.size = size
-	a.add_child(r)
+	cs.shape.size = Vector2.ONE * size * 0.7
+	a.add_child(spr)
 	a.add_child(cs)
 	a.position = pos
 	a.add_to_group("floor_obj")
@@ -113,6 +120,7 @@ func _clear_floor():
 		n.queue_free()
 
 func _go_floor(n: int):
+	Sfx.play(self, "door")
 	_clear_floor()
 	floor_num = n
 	max_floor = maxi(max_floor, n)
@@ -130,15 +138,15 @@ func _free_pos() -> Vector2:
 func _spawn_floor():
 	if floor_num == 0:
 		$FloorLabel.text = "HUB - PISO MAX %d" % max_floor
-		_make_area(Color(0.2, 0.4, 0.9), Vector2(12, 12), Vector2(80, 70), _open_shop, "E: Tienda")
-		_make_area(Color(0.2, 0.8, 0.3), Vector2(12, 12), Vector2(240, 70), _rest, "E: Descansar (10 oro)")
-		_make_area(Color(0.7, 0.3, 0.8), Vector2(12, 12), Vector2(160, 40), _talk, "E: Hablar con el Anciano")
-		_make_area(Color(0.9, 0.8, 0.2), Vector2(14, 14), Vector2(160, 150), func(_a): _go_floor(max_floor))
+		_make_area(112, 16, Vector2(80, 70), _open_shop, "E: Tienda")
+		_make_area(99, 16, Vector2(240, 70), _rest, "E: Descansar (10 oro)")
+		_make_area(86, 16, Vector2(160, 40), _talk, "E: Hablar con el Anciano")
+		_make_area(45, 16, Vector2(160, 150), func(_a): _go_floor(max_floor))
 		return
 	$FloorLabel.text = "PISO %d  (H: hub)" % floor_num
 	for n in randi_range(2, 4):
-		_make_area(Color(0.5, 0.1, 0.6), Vector2(10, 10), _free_pos(), try_start_battle)
-	_make_area(Color(0.9, 0.4, 0.1), Vector2(18, 18), _free_pos(), try_start_battle).set_meta("boss", true)
+		_make_area([108, 120, 121, 122].pick_random(), 14, _free_pos(), try_start_battle)
+	_make_area(109, 24, _free_pos(), try_start_battle).set_meta("boss", true)
 
 func _open_shop():
 	busy = true
@@ -151,6 +159,7 @@ func _open_shop():
 	add_child(menu)
 
 func _open_dialog(text: String, actions: Array = []):
+	Sfx.play(self, "dialog")
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	var box = DialogBox.new(text, actions)
@@ -171,6 +180,7 @@ func _talk():
 	_open_dialog(text, [["Cobrar", _claim.bind(q)]] if quests.is_ready(q) else [])
 
 func _claim(q: Dictionary):
+	Sfx.play(self, "coins")
 	quests.claimed.append(q.id)
 	player_inventory.add_gold(q.gold)
 	player_inventory.add_item(ItemData.find_by_id(q.item))
@@ -182,6 +192,7 @@ func _rest():
 	if player_inventory.spend_gold(10):
 		c.hp = c.max_hp
 		c.mp = c.max_mp
+		Sfx.play(self, "heal")
 		msg.text = "Descansas. HP/MP al maximo (-10 oro)"
 		_save()
 	else:
@@ -214,7 +225,7 @@ func _on_battle_ended(victory: bool):
 			quests.add("boss")
 			# lejos del jugador (está pegado al jefe) para no activar las escaleras al instante
 			var pos = (current_enemy.position + (current_enemy.position - player.position).normalized() * 40).clamp(Vector2(15, 25), Vector2(305, 145))
-			_make_area(Color(0.9, 0.8, 0.2), Vector2(14, 14), pos, func(_a): _go_floor(floor_num + 1))
+			_make_area(45, 16, pos, func(_a): _go_floor(floor_num + 1))
 			msg.text = "¡Jefe derrotado! Baja por las escaleras"
 		current_enemy.queue_free()
 		_save()
