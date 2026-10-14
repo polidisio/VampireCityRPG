@@ -28,6 +28,7 @@ func _ready():
 func start_battle(player: CharacterData, enemies: Array[CharacterData], inventory: Inventory = null):
 	player_inventory = inventory
 	player_team = [player]
+	player.statuses.clear()
 	enemy_team = enemies
 	current_turn_index = -1
 	calculate_turn_order()
@@ -61,6 +62,22 @@ func next_turn():
 		next_turn()
 		return
 	
+	var actor: CharacterData = current_actor.character
+	var stunned = actor.has_status("aturdido")
+	for line in actor.tick_statuses():
+		ui.add_log(line)
+	ui.update_stats()
+	check_battle_end()
+	if not is_battle_active:
+		return
+	if actor.hp <= 0:
+		next_turn()
+		return
+	if stunned:
+		ui.add_log("%s está aturdido y pierde el turno" % actor.character_name)
+		next_turn()
+		return
+
 	is_player_turn = not current_actor.is_enemy
 	turn_changed.emit(current_actor.character.character_name)
 	
@@ -83,8 +100,7 @@ func player_attack(target_index: int):
 	var attacker = player_team[0]
 	var target = enemy_team[target_index]
 	
-	var damage = attacker.attack
-	var actual_damage = target.take_damage(damage)
+	var actual_damage = target.take_damage(_power(attacker, attacker.attack))
 	
 	ui.add_log("%s ataca a %s por %d daños!" % [attacker.character_name, target.character_name, actual_damage])
 	# Update UI stats after attack
@@ -107,13 +123,7 @@ func player_use_skill(skill_index: int, target_index: int):
 		ui.show_player_menu()
 		return
 	
-	if skill.is_heal:
-		attacker.heal(skill.heal)
-		ui.add_log("%s usa %s y recupera %d HP!" % [attacker.character_name, skill.name, skill.heal])
-	else:
-		var target = enemy_team[target_index]
-		target.take_damage(skill.damage)
-		ui.add_log("%s usa %s en %s por %d daños!" % [attacker.character_name, skill.name, target.character_name, skill.damage])
+	_use_skill(attacker, skill, enemy_team[target_index])
 	
 	# Update UI stats after skill usage
 	if ui:
@@ -127,10 +137,14 @@ func enemy_turn():
 	var enemy = turn_order[current_turn_index].character
 	var target = player_team[0]
 	
-	var damage = enemy.attack
-	var actual_damage = target.take_damage(damage)
-	
-	ui.add_log("%s ataca a %s por %d daños!" % [enemy.character_name, target.character_name, actual_damage])
+	var usable = enemy.skills.filter(func(sk): return sk.mp_cost <= enemy.mp)
+	if not usable.is_empty() and randf() < 0.4:
+		var skill = usable.pick_random()
+		enemy.use_mp(skill.mp_cost)
+		_use_skill(enemy, skill, target)
+	else:
+		var actual_damage = target.take_damage(_power(enemy, enemy.attack))
+		ui.add_log("%s ataca a %s por %d daños!" % [enemy.character_name, target.character_name, actual_damage])
 	# Update UI stats after enemy turn
 	if ui:
 		ui.update_stats()
@@ -138,6 +152,27 @@ func enemy_turn():
 	check_battle_end()
 	if is_battle_active:
 		next_turn()
+
+func _power(user: CharacterData, base: int) -> int:
+	return int(base * 1.5) if user.has_status("furia") else base
+
+func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
+	if skill.is_heal:
+		user.heal(skill.heal)
+		ui.add_log("%s usa %s y recupera %d HP!" % [user.character_name, skill.name, skill.heal])
+		return
+	if skill.on_self:
+		user.add_status(skill.status, skill.status_turns)
+		ui.add_log("%s usa %s (%s)" % [user.character_name, skill.name, skill.status])
+		return
+	if skill.damage > 0:
+		var dmg = target.take_damage(_power(user, skill.damage))
+		ui.add_log("%s usa %s en %s por %d daños!" % [user.character_name, skill.name, target.character_name, dmg])
+	else:
+		ui.add_log("%s usa %s en %s" % [user.character_name, skill.name, target.character_name])
+	if skill.status != "":
+		target.add_status(skill.status, skill.status_turns)
+		ui.add_log("%s sufre %s" % [target.character_name, skill.status])
 
 func check_battle_end():
 	var all_dead = true

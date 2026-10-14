@@ -13,6 +13,18 @@
 
 Decisión simple: un solo `level.gd` que genera el piso por código (hub si floor==0), sin escenas nuevas por piso.
 
+## Plan Fase 3 (pendiente de confirmar)
+Fase 3 es grande: la divido en 3a/3b/3c, una por sesión/commit.
+**3a Combate (código puro):**
+1. [x] Skills por clase: 4-5 por clase (Noble/Salvaje/Dhampir/Hemomante), desbloqueo por nivel, en `create_*` + `learn_skills_for_level()` en `level_up`.
+2. [x] Estados: `statuses: Dictionary` en CharacterData (sangrado, aturdido, defensa↓, buff ATK) con turnos restantes; tick al inicio de turno en `battle_system`; `SkillData.status`/`status_turns`. Enemigos usan sus skills (hoy solo atacan normal).
+**3b Contenido:**
+3. Diálogos + misiones: NPC en hub (`DialogBox` simple + `QuestData`: "mata N enemigos / derrota jefe del piso X", recompensa oro/objeto), progreso guardado en save.
+**3c Pulido:**
+4. Sonido: SFX/música con `AudioStreamPlayer` (necesito archivos: ¿Kenney/CC0?).
+5. Arte: sprites (Kenney/propio/IA) reemplazando ColorRect.
+6. Export Android/iOS (necesita plantillas de export + keystore, lo haces tú o te guío).
+
 ## Notas de sesión (2026-10-14)
 - Fase 0 y 1 commiteadas (40180b2, f118afa). Godot 4.2.2 en /Applications/Godot.app.
 - Se instaló el MCP godot (`@coding-solo/godot-mcp`, GODOT_PATH=/Applications/Godot.app/Contents/MacOS/Godot). Tras reiniciar: verificar con `/mcp` y probar run_project + get_debug_output.

@@ -18,6 +18,7 @@ var defense: int = 5
 var speed: int = 10
 
 var skills: Array = []
+var statuses: Dictionary = {} # nombre -> turnos restantes
 var equipment: Dictionary = {
 	"weapon": null,
 	"armor": null,
@@ -35,10 +36,7 @@ static func create_noble() -> CharacterData:
 	new_char.attack = 15
 	new_char.defense = 8
 	new_char.speed = 12
-	new_char.skills = [
-		SkillData.create("Golpe Sombrío", "Daño moderado", 15, 0, 5),
-		SkillData.create("Presencia Amenazante", "Daño intimidante", 15, 0, 10)
-	]
+	new_char.sync_skills()
 	return new_char
 
 static func create_salvaje() -> CharacterData:
@@ -52,10 +50,7 @@ static func create_salvaje() -> CharacterData:
 	new_char.attack = 12
 	new_char.defense = 15
 	new_char.speed = 8
-	new_char.skills = [
-		SkillData.create("Golpe Brutal", "Daño alto", 20, 0, 5),
-		SkillData.create("Piel de Acero", "Golpe con armadura", 20, 0, 15)
-	]
+	new_char.sync_skills()
 	return new_char
 
 static func create_dhamphir() -> CharacterData:
@@ -69,10 +64,7 @@ static func create_dhamphir() -> CharacterData:
 	new_char.attack = 18
 	new_char.defense = 5
 	new_char.speed = 15
-	new_char.skills = [
-		SkillData.create("Tiro Preciso", "Daño a distancia", 18, 0, 3),
-		SkillData.create("Disparo Sangriento", "Daño fuerte", 25, 0, 8)
-	]
+	new_char.sync_skills()
 	return new_char
 
 static func create_hemomante() -> CharacterData:
@@ -86,11 +78,60 @@ static func create_hemomante() -> CharacterData:
 	new_char.attack = 8
 	new_char.defense = 5
 	new_char.speed = 10
-	new_char.skills = [
-		SkillData.create("Proyectil de Sangre", "Daño mágico", 20, 0, 10),
-		SkillData.create("Curación-blood", "Restaura HP", 0, 30, 15)
-	]
+	new_char.sync_skills()
 	return new_char
+
+static func class_skills(c: ClassType) -> Array:
+	match c:
+		ClassType.SALVAJE: return [
+			SkillData.create("Golpe Brutal", "Daño alto", 20, 0, 5),
+			SkillData.create("Piel de Acero", "Golpe con armadura", 20, 0, 15),
+			SkillData.create("Desgarro", "Hiere y causa sangrado", 18, 0, 10).with_status("sangrado", 3).at_level(3),
+			SkillData.create("Rugido Aterrador", "Reduce la defensa enemiga", 8, 0, 12).with_status("debil", 3).at_level(5),
+			SkillData.create("Frenesí", "Aumenta tu ataque", 0, 0, 15).with_status("furia", 4, true).at_level(7)]
+		ClassType.DHAMPIR: return [
+			SkillData.create("Tiro Preciso", "Daño a distancia", 18, 0, 3),
+			SkillData.create("Disparo Sangriento", "Daño fuerte y sangrado", 25, 0, 8).with_status("sangrado", 2),
+			SkillData.create("Estaca de Plata", "Daño muy alto", 30, 0, 12).at_level(3),
+			SkillData.create("Red de Ajo", "Aturde al enemigo", 5, 0, 14).with_status("aturdido", 2).at_level(5),
+			SkillData.create("Instinto Cazador", "Aumenta tu ataque", 0, 0, 10).with_status("furia", 3, true).at_level(7)]
+		ClassType.HEMOMANTE: return [
+			SkillData.create("Proyectil de Sangre", "Daño mágico", 20, 0, 10),
+			SkillData.create("Curación-blood", "Restaura HP", 0, 30, 15),
+			SkillData.create("Hemorragia", "Sangrado prolongado", 12, 0, 14).with_status("sangrado", 4).at_level(3),
+			SkillData.create("Transfusión", "Restaura mucho HP", 0, 70, 28).at_level(5),
+			SkillData.create("Lluvia Carmesí", "Daño mágico devastador", 35, 0, 22).at_level(7)]
+		_: return [
+			SkillData.create("Golpe Sombrío", "Daño moderado", 15, 0, 5),
+			SkillData.create("Presencia Amenazante", "Reduce la defensa enemiga", 15, 0, 10).with_status("debil", 3),
+			SkillData.create("Mordisco Carmesí", "Daño y sangrado", 20, 0, 12).with_status("sangrado", 3).at_level(3),
+			SkillData.create("Mirada Hipnótica", "Aturde al enemigo", 0, 0, 15).with_status("aturdido", 2).at_level(5),
+			SkillData.create("Orgullo Ancestral", "Aumenta tu ataque", 0, 0, 14).with_status("furia", 3, true).at_level(7)]
+
+func sync_skills():
+	skills = class_skills(class_type).filter(func(sk): return sk.unlock_level <= level)
+
+func has_status(s: String) -> bool:
+	return statuses.has(s)
+
+func add_status(s: String, turns: int):
+	statuses[s] = maxi(turns, statuses.get(s, 0))
+
+# Inicio de turno: aplica sangrado y descuenta turnos. Devuelve líneas de log.
+func tick_statuses() -> Array[String]:
+	var lines: Array[String] = []
+	if has_status("sangrado"):
+		var d = maxi(1, max_hp / 10)
+		hp = maxi(0, hp - d)
+		lines.append("%s sangra (-%d HP)" % [character_name, d])
+	for s in statuses.keys():
+		statuses[s] -= 1
+		if statuses[s] <= 0:
+			statuses.erase(s)
+	return lines
+
+func status_text() -> String:
+	return "" if statuses.is_empty() else " [" + ",".join(statuses.keys()) + "]"
 
 func add_exp(amount: int):
 	experience += amount
@@ -108,9 +149,11 @@ func level_up():
 	attack += 2
 	defense += 1
 	speed += 1
+	sync_skills()
 
 func take_damage(amount: int) -> int:
-	var actual_damage = max(1, amount - defense)
+	var def = int(defense * 0.5) if has_status("debil") else defense
+	var actual_damage = max(1, amount - def)
 	hp = max(0, hp - actual_damage)
 	return actual_damage
 
@@ -188,7 +231,7 @@ static func create_wild_vampire() -> CharacterData:
 	enemy.defense = 6
 	enemy.speed = 8
 	enemy.skills = [
-		SkillData.create("Golpe Descontrolado", "Daño medio", 12, 0, 0)
+		SkillData.create("Golpe Descontrolado", "Daño medio y sangrado", 12, 0, 0).with_status("sangrado", 2)
 	]
 	return enemy
 
@@ -203,7 +246,7 @@ static func create_noble_vampire() -> CharacterData:
 	enemy.speed = 14
 	enemy.skills = [
 		SkillData.create("Golpe Sombrío", "Daño moderado", 15, 0, 5),
-		SkillData.create("Presencia Amenazante", "Reduce defensa", 0, 0, 10)
+		SkillData.create("Presencia Amenazante", "Reduce defensa", 0, 0, 10).with_status("debil", 3)
 	]
 	return enemy
 

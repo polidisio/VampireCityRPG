@@ -27,6 +27,7 @@ static func load_game() -> Array:
 	for s in STATS:
 		if d.has(s):
 			c.set(s, int(d[s]))
+	c.sync_skills()
 	for slot in d.get("equipment", {}):
 		c.equipment[slot] = ItemData.find_by_id(d.equipment[slot])
 	var inv = Inventory.new()

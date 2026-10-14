@@ -44,10 +44,10 @@ func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[C
 func update_stats():
 	if player_char:
 		player_hp_label.text = "HP: %d/%d" % [player_char.hp, player_char.max_hp]
-		player_mp_label.text = "MP: %d/%d" % [player_char.mp, player_char.max_mp]
+		player_mp_label.text = "MP: %d/%d%s" % [player_char.mp, player_char.max_mp, player_char.status_text()]
 	var parts: Array[String] = []
 	for e in enemy_team:
-		parts.append("%s %d/%d" % [e.character_name, e.hp, e.max_hp])
+		parts.append("%s %d/%d%s" % [e.character_name, e.hp, e.max_hp, e.status_text()])
 	enemy_hp_label.text = " | ".join(parts)
 
 func show_player_menu():
