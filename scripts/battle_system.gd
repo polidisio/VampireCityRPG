@@ -19,6 +19,7 @@ const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus tur
 var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
 func _ready():
+	layer = 10 # por encima del HUD del nivel
 	ui = $BattleUI
 	if ui:
 		ui.visible = false

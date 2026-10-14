@@ -48,21 +48,27 @@ func _ready():
 	var help: Label = $Label
 	floor_label = $FloorLabel
 	msg = Label.new()
-	msg.position = Vector2(10, 150)
+	floor_label.position = Vector2(20, 150)
+	help.position = Vector2(20, 140)
+	msg.position = Vector2(20, 130)
 	for l in [help, floor_label, msg]:
 		if l.get_parent():
 			l.reparent(hud, false)
 		else:
 			hud.add_child(l)
-		l.add_theme_font_size_override("font_size", 8)
+	y_sort_enabled = true # el jugador se dibuja delante/detrás de NPCs y enemigos según su y
 	_spawn_floor()
 
 func _show_class_select():
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	var layer = CanvasLayer.new()
+	layer.layer = 5 # por encima del HUD
+	var bg = Panel.new()
+	layer.add_child(bg)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var box = VBoxContainer.new()
-	box.position = Vector2(100, 20)
+	box.position = Vector2(100, 24)
 	layer.add_child(box)
 	var title = Label.new()
 	title.text = "Elige tu clase"
@@ -111,27 +117,50 @@ func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: 
 	var a = Area2D.new()
 	var spr = Sprite2D.new()
 	spr.texture = load("res://assets/sprites/tile_%04d.png" % tile)
-	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.scale = Vector2.ONE * size / 16.0
+	if tile != 45: # las escaleras no llevan sombra
+		Shadow.attach(spr)
 	var cs = CollisionShape2D.new()
 	cs.shape = RectangleShape2D.new()
-	cs.shape.size = Vector2.ONE * size * 0.7
+	cs.shape.size = Vector2.ONE * (size + 22 if hint != "" else size * 0.7)
 	a.add_child(spr)
 	a.add_child(cs)
 	a.position = pos
 	a.add_to_group("floor_obj")
-	if hint != "": # NPC: se activa con E mientras estés cerca
+	if hint != "": # NPC: sólido, y se activa con E mientras estés cerca
+		_add_solid(Rect2(pos + Vector2(-6, -8), Vector2(12, 16)))
+		var lbl = Label.new()
+		lbl.text = hint
+		lbl.visible = false
+		lbl.z_index = 10
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.size = Vector2(160, 10)
+		lbl.position = Vector2(-80, -size / 2 - 13)
+		a.add_child(lbl)
 		a.body_entered.connect(func(_b):
 			nearby = on_enter
-			msg.text = hint)
+			lbl.visible = true)
 		a.body_exited.connect(func(_b):
 			if nearby == on_enter:
 				nearby = Callable()
-				msg.text = "")
+			lbl.visible = false)
 	else:
 		a.body_entered.connect(func(_b): if not busy: on_enter.call(a))
 	add_child(a)
 	return a
+
+# Colisión invisible (NPCs).
+func _add_solid(r: Rect2):
+	var b = StaticBody2D.new()
+	b.collision_layer = 2 # capa propia: las zonas de interacción (máscara 1) no lo detectan
+	b.position = r.position
+	var cs = CollisionShape2D.new()
+	cs.shape = RectangleShape2D.new()
+	cs.shape.size = r.size
+	cs.position = r.size / 2
+	b.add_child(cs)
+	b.add_to_group("floor_obj")
+	add_child(b)
 
 func _clear_floor():
 	nearby = Callable()

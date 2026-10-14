@@ -8,7 +8,7 @@ signal item_pressed
 @onready var player_mp_label = $Panel/VBox/PlayerMP
 @onready var enemy_hp_label = $Panel/VBox/EnemyHP
 @onready var menu = $Panel/Menu
-var skill_menu: VBoxContainer
+var skill_menu: GridContainer
 var log_label: Label
 var log_lines: Array[String] = []
 
@@ -25,17 +25,17 @@ func _ready():
 	add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	move_child(bg, 0) # detrás del Panel
-	for l in [player_hp_label, player_mp_label]:
-		l.add_theme_font_size_override("font_size", 10)
 	stage = Node2D.new()
 	add_child(stage)
 	move_child(stage, 1)
 	var scroll = ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(150, 54)
 	scroll.visible = false
 	$Panel.add_child(scroll)
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	skill_menu = VBoxContainer.new()
+	scroll.position = Vector2(4, 4)
+	scroll.size = Vector2(292, 62)
+	skill_menu = GridContainer.new() # 2 columnas: caben 6 botones en el panel
+	skill_menu.columns = 2
+	skill_menu.custom_minimum_size.x = 286
 	scroll.add_child(skill_menu)
 	var ib = Button.new()
 	ib.text = "Objeto"
@@ -44,7 +44,6 @@ func _ready():
 	ib.pressed.connect(func(): item_pressed.emit())
 	log_label = Label.new()
 	log_label.position = Vector2(10, 6)
-	log_label.add_theme_font_size_override("font_size", 8)
 	add_child(log_label)
 
 func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[CharacterData]):
@@ -64,13 +63,13 @@ func _make_sprite(c: CharacterData, pos: Vector2, scale_f: float, flip: bool = f
 	spr.position = pos
 	spr.scale = Vector2.ONE * scale_f
 	spr.flip_h = flip
+	Shadow.attach(spr)
 	stage.add_child(spr)
 	sprites[c] = spr
 	var lbl = Label.new()
-	lbl.add_theme_font_size_override("font_size", 8)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.size = Vector2(80, 12)
-	lbl.position = pos + Vector2(-40, 8 * scale_f)
+	lbl.size = Vector2(130, 10)
+	lbl.position = pos + Vector2(-65, 8 * scale_f)
 	stage.add_child(lbl)
 	hp_labels[c] = lbl
 
@@ -84,7 +83,7 @@ func _build_stage():
 	var n = enemy_team.size()
 	for i in n:
 		var e = enemy_team[i]
-		var pos = Vector2(265 - (i >> 1) * 70, 55 if n == 1 else 28 + (i % 2) * 44)
+		var pos = Vector2(255 - (i >> 1) * 70, 55 if n == 1 else 28 + (i % 2) * 44)
 		_make_sprite(e, pos, 4.0 if e.is_boss else 2.0, true)
 
 # El atacante embiste hacia el objetivo y el objetivo parpadea en rojo.
@@ -110,7 +109,9 @@ func update_stats():
 		player_hp_label.text = "HP: %d/%d" % [player_char.hp, player_char.max_hp]
 		player_mp_label.text = "MP: %d/%d%s" % [player_char.mp, player_char.max_mp, player_char.status_text()]
 	for c in hp_labels:
-		hp_labels[c].text = "%s %d/%d%s" % ["" if c == player_char else c.character_name + " ", c.hp, c.max_hp, c.status_text()]
+		# con 3+ enemigos no hay sitio para los nombres: solo HP y estados
+		var show_name = c != player_char and enemy_team.size() <= 2
+		hp_labels[c].text = "%s%d/%d%s" % [c.character_name + " " if show_name else "", c.hp, c.max_hp, c.status_text()]
 	for c in sprites:
 		if c.hp <= 0 and sprites[c].modulate.a > 0.0 and not sprites[c].has_meta("fading"):
 			sprites[c].set_meta("fading", true)
@@ -118,6 +119,7 @@ func update_stats():
 
 func show_player_menu():
 	skill_menu.get_parent().visible = false
+	$Panel/VBox.visible = true
 	menu.visible = true
 
 func show_skill_menu(skills: Array):
@@ -132,15 +134,19 @@ func _show_list(labels: Array, on_pick: Callable):
 	for i in labels.size():
 		var b = Button.new()
 		b.text = labels[i]
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(func():
 			skill_menu.get_parent().visible = false
+			$Panel/VBox.visible = true
 			on_pick.call(i))
 		skill_menu.add_child(b)
 	var back = Button.new()
 	back.text = "Volver"
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.pressed.connect(show_player_menu)
 	skill_menu.add_child(back)
 	menu.visible = false
+	$Panel/VBox.visible = false
 	skill_menu.get_parent().visible = true
 
 func add_log(text: String):

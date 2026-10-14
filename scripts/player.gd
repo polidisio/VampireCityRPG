@@ -14,6 +14,8 @@ var character_data: CharacterData:
 var direction: Vector2 = Vector2.DOWN
 
 func _ready():
+	collision_mask = 3 # capa 1: muros; capa 2: NPCs
+	Shadow.attach(sprite)
 	position = Vector2(160, 100)
 	update_sprite()
 

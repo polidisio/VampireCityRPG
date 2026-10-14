@@ -12,8 +12,8 @@ func _init(t: String, acts: Array = []):
 
 func _ready():
 	var panel = Panel.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var label = Label.new()
 	label.text = text
 	label.position = Vector2(12, 12)

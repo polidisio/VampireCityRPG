@@ -13,8 +13,8 @@ func _init(inv: Inventory):
 
 func _ready():
 	var panel = Panel.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	gold_label = Label.new()
 	gold_label.position = Vector2(8, 4)
 	panel.add_child(gold_label)

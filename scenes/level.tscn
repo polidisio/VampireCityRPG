@@ -28,7 +28,7 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 36.0
-text = "WASD: Moverse | I: Inventario | Toca enemigos"
+text = "WASD: mover   I: inventario   H: hub"
 
 [node name="FloorLabel" type="Label" parent="."]
 offset_left = 10.0

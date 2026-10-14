@@ -14,8 +14,8 @@ func _init(c: CharacterData, inv: Inventory):
 
 func _ready():
 	var panel = Panel.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	info = Label.new()
 	info.position = Vector2(8, 8)
 	panel.add_child(info)
