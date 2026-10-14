@@ -208,7 +208,7 @@ func try_start_battle(enemy_node: Area2D):
 		enemies.append(CharacterData.create_boss(floor_num))
 	else:
 		for i in range(CharacterData.get_enemy_count_for_difficulty(difficulty)):
-			enemies.append(CharacterData.get_random_enemy(difficulty))
+			enemies.append(CharacterData.get_random_enemy(difficulty, floor_num))
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	battle_system.start_battle(player.character_data, enemies, player_inventory)

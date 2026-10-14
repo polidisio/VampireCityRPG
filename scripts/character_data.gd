@@ -18,6 +18,8 @@ var defense: int = 5
 var speed: int = 10
 
 var skills: Array = []
+var sprite_tile: int = 100 # tile de assets/sprites
+var is_boss: bool = false
 var statuses: Dictionary = {} # nombre -> turnos restantes
 var equipment: Dictionary = {
 	"weapon": null,
@@ -29,6 +31,7 @@ static func create_noble() -> CharacterData:
 	var new_char = CharacterData.new()
 	new_char.character_name = "Vampiro Noble"
 	new_char.class_type = ClassType.NOBLE
+	new_char.sprite_tile = 100
 	new_char.max_hp = 90
 	new_char.hp = 90
 	new_char.max_mp = 60
@@ -43,6 +46,7 @@ static func create_salvaje() -> CharacterData:
 	var new_char = CharacterData.new()
 	new_char.character_name = "Vampiro Salvaje"
 	new_char.class_type = ClassType.SALVAJE
+	new_char.sprite_tile = 87
 	new_char.max_hp = 130
 	new_char.hp = 130
 	new_char.max_mp = 30
@@ -57,8 +61,9 @@ static func create_dhamphir() -> CharacterData:
 	var new_char = CharacterData.new()
 	new_char.character_name = "Dhampir"
 	new_char.class_type = ClassType.DHAMPIR
-	new_char.max_hp = 80
-	new_char.hp = 80
+	new_char.sprite_tile = 88
+	new_char.max_hp = 90
+	new_char.hp = 90
 	new_char.max_mp = 45
 	new_char.mp = 45
 	new_char.attack = 18
@@ -71,11 +76,12 @@ static func create_hemomante() -> CharacterData:
 	var new_char = CharacterData.new()
 	new_char.character_name = "Hemomante"
 	new_char.class_type = ClassType.HEMOMANTE
+	new_char.sprite_tile = 84
 	new_char.max_hp = 70
 	new_char.hp = 70
 	new_char.max_mp = 80
 	new_char.mp = 80
-	new_char.attack = 8
+	new_char.attack = 10
 	new_char.defense = 5
 	new_char.speed = 10
 	new_char.sync_skills()
@@ -96,8 +102,8 @@ static func class_skills(c: ClassType) -> Array:
 			SkillData.create("Red de Ajo", "Aturde al enemigo", 5, 0, 14).with_status("aturdido", 2).at_level(5),
 			SkillData.create("Instinto Cazador", "Aumenta tu ataque", 0, 0, 10).with_status("furia", 3, true).at_level(7)]
 		ClassType.HEMOMANTE: return [
-			SkillData.create("Proyectil de Sangre", "Daño mágico", 20, 0, 10),
-			SkillData.create("Curación-blood", "Restaura HP", 0, 30, 15),
+			SkillData.create("Proyectil de Sangre", "Daño mágico", 20, 0, 8),
+			SkillData.create("Curación-blood", "Restaura HP", 0, 30, 12),
 			SkillData.create("Hemorragia", "Sangrado prolongado", 12, 0, 14).with_status("sangrado", 4).at_level(3),
 			SkillData.create("Transfusión", "Restaura mucho HP", 0, 70, 28).at_level(5),
 			SkillData.create("Lluvia Carmesí", "Daño mágico devastador", 35, 0, 22).at_level(7)]
@@ -141,7 +147,7 @@ func add_exp(amount: int):
 
 func level_up():
 	level += 1
-	experience_to_next_level = int(experience_to_next_level * 1.5)
+	experience_to_next_level = int(experience_to_next_level * 1.35)
 	max_hp += 10
 	hp = max_hp
 	max_mp += 5
@@ -191,6 +197,7 @@ func use_mp(cost: int) -> bool:
 static func create_hunter() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Cazador Ángel"
+	enemy.sprite_tile = 97
 	enemy.level = 1
 	enemy.max_hp = 50
 	enemy.hp = 50
@@ -202,6 +209,7 @@ static func create_hunter() -> CharacterData:
 static func create_slayer() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Slayer"
+	enemy.sprite_tile = 98
 	enemy.level = 2
 	enemy.max_hp = 70
 	enemy.hp = 70
@@ -213,6 +221,7 @@ static func create_slayer() -> CharacterData:
 static func create_vampire_hunter() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Cazador de Vampiros"
+	enemy.sprite_tile = 96
 	enemy.level = 3
 	enemy.max_hp = 90
 	enemy.hp = 90
@@ -224,6 +233,7 @@ static func create_vampire_hunter() -> CharacterData:
 static func create_wild_vampire() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Vampiro Salvaje"
+	enemy.sprite_tile = 110
 	enemy.level = 2
 	enemy.max_hp = 80
 	enemy.hp = 80
@@ -238,6 +248,7 @@ static func create_wild_vampire() -> CharacterData:
 static func create_noble_vampire() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Vampiro Noble"
+	enemy.sprite_tile = 111
 	enemy.level = 4
 	enemy.max_hp = 120
 	enemy.hp = 120
@@ -250,7 +261,7 @@ static func create_noble_vampire() -> CharacterData:
 	]
 	return enemy
 
-static func get_random_enemy(difficulty: int = 1) -> CharacterData:
+static func get_random_enemy(difficulty: int = 1, floor_num: int = 0) -> CharacterData:
 	var enemies: Array[Callable] = []
 	match difficulty:
 		1:
@@ -265,15 +276,24 @@ static func get_random_enemy(difficulty: int = 1) -> CharacterData:
 			enemies = [create_hunter]
 	
 	var idx = randi() % enemies.size()
-	return enemies[idx].call()
+	var e: CharacterData = enemies[idx].call()
+	# a partir del piso 5 la dificultad base se estanca: escalan los stats (+12% por piso)
+	if floor_num > 5:
+		var m = 1.0 + 0.12 * (floor_num - 5)
+		e.max_hp = int(e.max_hp * m)
+		e.hp = e.max_hp
+		e.attack = int(e.attack * m)
+		e.defense = int(e.defense * m)
+	return e
 
 static func create_boss(floor_num: int) -> CharacterData:
-	var b = get_random_enemy(clampi(floor_num, 1, 5))
+	var b = get_random_enemy(clampi(floor_num, 1, 5), floor_num)
 	b.character_name = "Jefe " + b.character_name
-	b.max_hp *= 3
+	b.is_boss = true
+	b.max_hp = int(b.max_hp * 2.5)
 	b.hp = b.max_hp
-	b.attack = int(b.attack * 1.5)
-	b.defense *= 2
+	b.attack = int(b.attack * 1.3)
+	b.defense = int(b.defense * 1.5)
 	return b
 
 static func get_enemy_count_for_difficulty(difficulty: int) -> int:

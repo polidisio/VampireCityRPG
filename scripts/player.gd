@@ -1,10 +1,6 @@
 extends CharacterBody2D
 
 const SPEED = 60.0
-const CLASS_TILES = {
-	CharacterData.ClassType.NOBLE: 100, CharacterData.ClassType.SALVAJE: 87,
-	CharacterData.ClassType.DHAMPIR: 88, CharacterData.ClassType.HEMOMANTE: 84}
-
 var character_data: CharacterData:
 	set(v):
 		character_data = v
@@ -22,7 +18,7 @@ func _ready():
 	update_sprite()
 
 func update_sprite():
-	var tile = CLASS_TILES[character_data.class_type] if character_data else 100
+	var tile = character_data.sprite_tile if character_data else 100
 	sprite.texture = load("res://assets/sprites/tile_%04d.png" % tile)
 
 func _physics_process(_delta):

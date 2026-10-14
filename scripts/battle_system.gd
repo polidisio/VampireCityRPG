@@ -1,4 +1,4 @@
-extends Node2D
+extends CanvasLayer
 class_name BattleSystem
 
 signal battle_ended(victory: bool)
@@ -14,6 +14,8 @@ var is_player_turn: bool = true
 
 var ui: Control
 var player_inventory: Inventory
+const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus turnos
+var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
 func _ready():
 	ui = $BattleUI
@@ -63,6 +65,8 @@ func next_turn():
 		return
 	
 	var actor: CharacterData = current_actor.character
+	if not current_actor.is_enemy:
+		actor.mp = mini(actor.max_mp, actor.mp + MP_REGEN)
 	var stunned = actor.has_status("aturdido")
 	for line in actor.tick_statuses():
 		ui.add_log(line)
@@ -84,7 +88,7 @@ func next_turn():
 	if is_player_turn:
 		ui.show_player_menu()
 	else:
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(enemy_delay).timeout
 		enemy_turn()
 
 func first_alive_enemy() -> int:
@@ -102,6 +106,7 @@ func player_attack(target_index: int):
 	
 	var actual_damage = target.take_damage(_power(attacker, attacker.attack))
 	Sfx.play(self, "hit")
+	ui.animate_attack(attacker, target)
 	
 	ui.add_log("%s ataca a %s por %d daños!" % [attacker.character_name, target.character_name, actual_damage])
 	# Update UI stats after attack
@@ -146,6 +151,7 @@ func enemy_turn():
 	else:
 		var actual_damage = target.take_damage(_power(enemy, enemy.attack))
 		Sfx.play(self, "hurt")
+		ui.animate_attack(enemy, target)
 		ui.add_log("%s ataca a %s por %d daños!" % [enemy.character_name, target.character_name, actual_damage])
 	# Update UI stats after enemy turn
 	if ui:
@@ -160,6 +166,12 @@ func _power(user: CharacterData, base: int) -> int:
 
 func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 	Sfx.play(self, "heal" if skill.is_heal or skill.on_self else "skill")
+	if skill.is_heal or skill.on_self:
+		ui.flash(user, Color(0.4, 1, 0.5))
+	elif skill.damage > 0:
+		ui.animate_attack(user, target)
+	else:
+		ui.flash(target, Color(0.7, 0.4, 1))
 	if skill.is_heal:
 		user.heal(skill.heal)
 		ui.add_log("%s usa %s y recupera %d HP!" % [user.character_name, skill.name, skill.heal])
@@ -201,7 +213,7 @@ func check_battle_end():
 		is_battle_active = false
 		var exp_gained = 0
 		for e in enemy_team:
-			exp_gained += 25
+			exp_gained += (10 + 15 * e.level) * (2 if e.is_boss else 1)
 		player_team[0].add_exp(exp_gained)
 		ui.add_log("¡Victoria! +%d EXP" % exp_gained)
 		Sfx.play(self, "victory")

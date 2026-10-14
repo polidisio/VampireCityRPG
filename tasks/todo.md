@@ -2,7 +2,7 @@
 - [x] Fase 0: limpiar y arreglar bugs (auto-battle, skills, run, walk anim, prints, main.gd)
 - [x] Fase 1: inventario (I), equipo, objetos en combate, selección de clase, guardado (user://save.json)
 - [x] Fase 2: hub (tienda/NPC) + torre de pisos con jefes, enemigos en mapa
-- [ ] Fase 3: skills por clase, estados, diálogos/misiones, sonido, arte (Kenney / propio / IA), export móvil
+- [x] Fase 3 (export móvil aplazado): skills por clase, estados, diálogos/misiones, sonido, arte (Kenney / propio / IA), export móvil
 
 ## Plan Fase 2 (hecho)
 1. [x] Estado de piso: `floor` en SaveGame (+ inventory/gold ya guardados). Dificultad = piso.
@@ -23,7 +23,7 @@ Fase 3 es grande: la divido en 3a/3b/3c, una por sesión/commit.
 **3c Pulido:**
 4. [x] Sonido: SFX/música con `AudioStreamPlayer` (necesito archivos: ¿Kenney/CC0?).
 5. [x] Arte: sprites (Kenney/propio/IA) reemplazando ColorRect.
-6. Export Android/iOS (necesita plantillas de export + keystore, lo haces tú o te guío).
+6. [aplazado] Export Android/iOS (necesita plantillas de export + keystore, lo haces tú o te guío).
 
 ## Notas de sesión (2026-10-14)
 - Fase 0 y 1 commiteadas (40180b2, f118afa). Godot 4.2.2 en /Applications/Godot.app.

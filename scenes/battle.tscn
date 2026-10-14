@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle_system.gd" id="1_battle"]
 [ext_resource type="Script" path="res://scripts/battle_ui.gd" id="2_ui"]
 
-[node name="BattleSystem" type="Node2D"]
+[node name="BattleSystem" type="CanvasLayer"]
 script = ExtResource("1_battle")
 
 [node name="BattleUI" type="Control" parent="."]

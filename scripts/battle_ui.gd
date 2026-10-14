@@ -13,9 +13,23 @@ var log_label: Label
 var log_lines: Array[String] = []
 
 var player_char: CharacterData
+var stage: Node2D
+var sprites: Dictionary = {} # CharacterData -> Sprite2D
+var hp_labels: Dictionary = {} # CharacterData -> Label
 var enemy_team: Array = []
 
 func _ready():
+	var bg = ColorRect.new()
+	bg.color = Color(0.08, 0.06, 0.12)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(bg, 0) # detrás del Panel
+	for l in [player_hp_label, player_mp_label]:
+		l.add_theme_font_size_override("font_size", 10)
+	stage = Node2D.new()
+	add_child(stage)
+	move_child(stage, 1)
 	var scroll = ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(150, 54)
 	scroll.visible = false
@@ -29,7 +43,8 @@ func _ready():
 	menu.move_child(ib, 2)
 	ib.pressed.connect(func(): item_pressed.emit())
 	log_label = Label.new()
-	log_label.position = Vector2(10, 10)
+	log_label.position = Vector2(10, 6)
+	log_label.add_theme_font_size_override("font_size", 8)
 	add_child(log_label)
 
 func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[CharacterData]):
@@ -37,18 +52,69 @@ func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[C
 	enemy_team = enemy_team_ref
 	log_lines.clear()
 	log_label.text = ""
+	_build_stage()
 	update_stats()
 	menu.visible = false
 	skill_menu.get_parent().visible = false
+
+func _make_sprite(c: CharacterData, pos: Vector2, scale_f: float, flip: bool = false) -> void:
+	var spr = Sprite2D.new()
+	spr.texture = load("res://assets/sprites/tile_%04d.png" % c.sprite_tile)
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.position = pos
+	spr.scale = Vector2.ONE * scale_f
+	spr.flip_h = flip
+	stage.add_child(spr)
+	sprites[c] = spr
+	var lbl = Label.new()
+	lbl.add_theme_font_size_override("font_size", 8)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.size = Vector2(80, 12)
+	lbl.position = pos + Vector2(-40, 8 * scale_f)
+	stage.add_child(lbl)
+	hp_labels[c] = lbl
+
+func _build_stage():
+	for n in stage.get_children():
+		n.queue_free()
+	sprites.clear()
+	hp_labels.clear()
+	enemy_hp_label.visible = false
+	_make_sprite(player_char, Vector2(60, 66), 3.0)
+	var n = enemy_team.size()
+	for i in n:
+		var e = enemy_team[i]
+		var pos = Vector2(265 - (i >> 1) * 70, 55 if n == 1 else 28 + (i % 2) * 44)
+		_make_sprite(e, pos, 4.0 if e.is_boss else 2.0, true)
+
+# El atacante embiste hacia el objetivo y el objetivo parpadea en rojo.
+func animate_attack(attacker: CharacterData, target: CharacterData):
+	var a = sprites.get(attacker)
+	var t = sprites.get(target)
+	if a and t:
+		var home = a.position
+		var tw = a.create_tween()
+		tw.tween_property(a, "position", home + (t.position - home).normalized() * 24, 0.1)
+		tw.tween_property(a, "position", home, 0.15)
+	flash(target, Color(1, 0.3, 0.3))
+
+func flash(c: CharacterData, color: Color):
+	var spr = sprites.get(c)
+	if spr:
+		var tw = spr.create_tween()
+		tw.tween_property(spr, "modulate", color, 0.08)
+		tw.tween_property(spr, "modulate", Color.WHITE, 0.2)
 
 func update_stats():
 	if player_char:
 		player_hp_label.text = "HP: %d/%d" % [player_char.hp, player_char.max_hp]
 		player_mp_label.text = "MP: %d/%d%s" % [player_char.mp, player_char.max_mp, player_char.status_text()]
-	var parts: Array[String] = []
-	for e in enemy_team:
-		parts.append("%s %d/%d%s" % [e.character_name, e.hp, e.max_hp, e.status_text()])
-	enemy_hp_label.text = " | ".join(parts)
+	for c in hp_labels:
+		hp_labels[c].text = "%s %d/%d%s" % ["" if c == player_char else c.character_name + " ", c.hp, c.max_hp, c.status_text()]
+	for c in sprites:
+		if c.hp <= 0 and sprites[c].modulate.a > 0.0 and not sprites[c].has_meta("fading"):
+			sprites[c].set_meta("fading", true)
+			sprites[c].create_tween().tween_property(sprites[c], "modulate:a", 0.0, 0.4)
 
 func show_player_menu():
 	skill_menu.get_parent().visible = false
