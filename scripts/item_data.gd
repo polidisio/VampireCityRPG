@@ -60,7 +60,9 @@ static func get_all_weapons() -> Array[ItemData]:
 		create_weapon("Espada Corta", "Espada ligero de acero", 8, 50),
 		create_weapon("Espada Longa", "Espada de una mano con buen equilibrio", 12, 80),
 		create_weapon("Hacha de Guerra", "Hacha pesada que causa gran daño", 15, 100),
-		create_weapon("Látigo Encantado", "Látigo místico del caos", 10, 75)
+		create_weapon("Látigo Encantado", "Látigo místico del caos", 10, 75),
+		create_weapon("Estaca Sagrada", "Madera bendita, letal para vampiros", 18, 130),
+		create_weapon("Guadaña Carmesí", "Hoja forjada con sangre", 23, 190)
 	]
 
 static func get_all_armors() -> Array[ItemData]:
@@ -68,7 +70,17 @@ static func get_all_armors() -> Array[ItemData]:
 		create_armor("Armadura de Cuero", "Protección básica de cuero", 3, 25),
 		create_armor("Cota de Mallas", "Cota de metal flexible", 6, 50),
 		create_armor("Pechera de Acero", "Armadura sólida de placas", 10, 80),
-		create_armor("Armadura de Placas", "Armadura pesada de máxima protección", 15, 120)
+		create_armor("Armadura de Placas", "Armadura pesada de máxima protección", 15, 120),
+		create_armor("Manto de Sombras", "Tela encantada y ligera", 12, 110),
+		create_armor("Armadura Sangrienta", "Placas teñidas de rojo", 21, 190)
+	]
+
+static func get_all_accessories() -> Array[ItemData]:
+	return [
+		create_accessory("Anillo de Sangre", "Aumenta el ataque", 3, 0, 60),
+		create_accessory("Amuleto de Ajo", "Aumenta la defensa", 0, 3, 60),
+		create_accessory("Colmillo de Plata", "Ataque y defensa", 2, 2, 90),
+		create_accessory("Capa Nocturna", "Gran protección", 1, 5, 120)
 	]
 
 static func get_all_consumables() -> Array[ItemData]:
@@ -78,11 +90,13 @@ static func get_all_consumables() -> Array[ItemData]:
 		create_consumable("Poción Grande", "Restaura 100 HP", 100, 0, 35),
 		create_consumable("Éter Pequeño", "Restaura 20 MP", 0, 20, 15),
 		create_consumable("Éter Mediano", "Restaura 40 MP", 0, 40, 30),
-		create_consumable("Poción Mixta", "Restaura 40 HP y 20 MP", 40, 20, 25)
+		create_consumable("Poción Mixta", "Restaura 40 HP y 20 MP", 40, 20, 25),
+		create_consumable("Éter Grande", "Restaura 80 MP", 0, 80, 50),
+		create_consumable("Elixir", "Restaura 150 HP y 60 MP", 150, 60, 90)
 	]
 
 static func find_by_id(item_id: String) -> ItemData:
-	for list in [get_all_weapons(), get_all_armors(), get_all_consumables()]:
+	for list in [get_all_weapons(), get_all_armors(), get_all_accessories(), get_all_consumables()]:
 		for i in list:
 			if i.id == item_id:
 				return i

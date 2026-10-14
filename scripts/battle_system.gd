@@ -14,6 +14,7 @@ var is_player_turn: bool = true
 
 var ui: Control
 var player_inventory: Inventory
+var floor_num: int = 1 # lo fija el nivel; condiciona los drops
 const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus turnos
 var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
@@ -144,7 +145,7 @@ func enemy_turn():
 	var target = player_team[0]
 	
 	var usable = enemy.skills.filter(func(sk): return sk.mp_cost <= enemy.mp)
-	if not usable.is_empty() and randf() < 0.4:
+	if not usable.is_empty() and randf() < (0.5 if enemy.is_boss else 0.4):
 		var skill = usable.pick_random()
 		enemy.use_mp(skill.mp_cost)
 		_use_skill(enemy, skill, target)
@@ -265,24 +266,23 @@ func _on_run_pressed():
 		is_battle_active = false
 		battle_fled.emit()
 
+# Solo cae lo que "toca" por piso: valor <= 40 + 40*piso (los jefes: +40 y siempre sueltan equipo).
 func generate_drops() -> Array[ItemData]:
 	var drops: Array[ItemData] = []
+	var max_val = 40 + 40 * floor_num
+	var consumables = ItemData.get_all_consumables().filter(func(i): return i.value <= max_val)
+	var gear = (ItemData.get_all_weapons() + ItemData.get_all_armors() + ItemData.get_all_accessories())
 	var roll = randf()
-	
-	if roll < 0.3:
-		var consumables = ItemData.get_all_consumables()
-		drops.append(consumables[randi() % consumables.size()])
-	elif roll < 0.5:
-		var weapons = ItemData.get_all_weapons()
-		if randf() < 0.3:
-			drops.append(weapons[randi() % weapons.size()])
-	elif roll < 0.7:
-		var armors = ItemData.get_all_armors()
-		if randf() < 0.3:
-			drops.append(armors[randi() % armors.size()])
-	
-	if randf() < 0.2:
-		var consumables = ItemData.get_all_consumables()
-		drops.append(consumables[randi() % consumables.size()])
-	
+	if roll < 0.3 and not consumables.is_empty():
+		drops.append(consumables.pick_random())
+	elif roll < 0.7 and randf() < 0.3:
+		var pool = gear.filter(func(i): return i.value <= max_val)
+		if not pool.is_empty():
+			drops.append(pool.pick_random())
+	if randf() < 0.2 and not consumables.is_empty():
+		drops.append(consumables.pick_random())
+	if enemy_team[0].is_boss:
+		var pool = gear.filter(func(i): return i.value <= max_val + 40)
+		if not pool.is_empty():
+			drops.append(pool.pick_random())
 	return drops

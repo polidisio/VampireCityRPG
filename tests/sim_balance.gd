@@ -10,6 +10,7 @@ var bs: BattleSystem
 var inv: Inventory
 var won := false
 var done := false
+var cur_floor := 1
 
 func _init():
 	randomize()
@@ -65,6 +66,7 @@ func _act():
 
 func _fight(p: CharacterData, enemies: Array[CharacterData]) -> bool:
 	done = false
+	bs.floor_num = cur_floor
 	bs.start_battle(p, enemies, inv)
 	var frames := 0
 	while not done and frames < 3000:
@@ -87,6 +89,7 @@ func _run(cls: int) -> Array:
 		p.hp = p.max_hp
 		p.mp = p.max_mp
 		var diff = clampi(f, 1, 5)
+		cur_floor = f
 		var fights = randi_range(2, 4)
 		for i in fights + 1:
 			var enemies: Array[CharacterData] = []

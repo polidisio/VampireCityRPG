@@ -261,39 +261,84 @@ static func create_noble_vampire() -> CharacterData:
 	]
 	return enemy
 
-static func get_random_enemy(difficulty: int = 1, floor_num: int = 0) -> CharacterData:
-	var enemies: Array[Callable] = []
-	match difficulty:
-		1:
-			enemies = [create_hunter]
-		2:
-			enemies = [create_hunter, create_slayer, create_wild_vampire]
-		3:
-			enemies = [create_slayer, create_vampire_hunter, create_wild_vampire]
-		4, 5:
-			enemies = [create_vampire_hunter, create_noble_vampire]
-		_:
-			enemies = [create_hunter]
-	
-	var idx = randi() % enemies.size()
-	var e: CharacterData = enemies[idx].call()
-	# a partir del piso 5 la dificultad base se estanca: escalan los stats (+12% por piso)
+static func _enemy(n: String, tile: int, lvl: int, health: int, power: int, armor: int, agility: int, sk: Array = []) -> CharacterData:
+	var e = CharacterData.new()
+	e.character_name = n
+	e.sprite_tile = tile
+	e.level = lvl
+	e.max_hp = health
+	e.hp = health
+	e.attack = power
+	e.defense = armor
+	e.speed = agility
+	e.skills = sk
+	return e
+
+static func create_bat() -> CharacterData:
+	return _enemy("Murciélago Sanguijuela", 120, 1, 35, 7, 1, 14,
+		[SkillData.create("Chupasangre", "Mordisco que sangra", 6, 0, 0).with_status("sangrado", 2)])
+
+static func create_slime() -> CharacterData:
+	return _enemy("Cieno Carmesí", 108, 2, 90, 8, 8, 4)
+
+static func create_ghost() -> CharacterData:
+	return _enemy("Espectro", 121, 3, 60, 16, 3, 13,
+		[SkillData.create("Gemido", "Aturde", 0, 0, 0).with_status("aturdido", 1)])
+
+static func create_spider() -> CharacterData:
+	return _enemy("Araña de Cripta", 122, 3, 70, 13, 5, 12,
+		[SkillData.create("Mordisco Venenoso", "Veneno", 10, 0, 0).with_status("sangrado", 3)])
+
+static func create_ghoul() -> CharacterData:
+	return _enemy("Cíclope Ghoul", 109, 4, 140, 17, 9, 6,
+		[SkillData.create("Golpe Demoledor", "Daño alto", 26, 0, 0)])
+
+# a partir del piso 5 la dificultad base se estanca: escalan los stats (+12% por piso)
+static func _scale_for_floor(e: CharacterData, floor_num: int) -> void:
 	if floor_num > 5:
 		var m = 1.0 + 0.12 * (floor_num - 5)
 		e.max_hp = int(e.max_hp * m)
 		e.hp = e.max_hp
 		e.attack = int(e.attack * m)
 		e.defense = int(e.defense * m)
+
+static func get_random_enemy(difficulty: int = 1, floor_num: int = 0) -> CharacterData:
+	var enemies: Array[Callable] = []
+	match difficulty:
+		1:
+			enemies = [create_hunter, create_bat]
+		2:
+			enemies = [create_hunter, create_slayer, create_wild_vampire, create_slime]
+		3:
+			enemies = [create_slayer, create_vampire_hunter, create_wild_vampire, create_ghost, create_spider]
+		4, 5:
+			enemies = [create_vampire_hunter, create_noble_vampire, create_ghost, create_spider, create_ghoul]
+		_:
+			enemies = [create_hunter]
+	var e: CharacterData = enemies.pick_random().call()
+	_scale_for_floor(e, floor_num)
 	return e
 
+# Un jefe distinto por piso (cicla cada 5 pisos y escala a partir del 6).
 static func create_boss(floor_num: int) -> CharacterData:
-	var b = get_random_enemy(clampi(floor_num, 1, 5), floor_num)
-	b.character_name = "Jefe " + b.character_name
+	var b: CharacterData
+	match (maxi(floor_num, 1) - 1) % 5:
+		0: b = _enemy("Cazador Capitán", 96, 3, 110, 10, 4, 8,
+			[SkillData.create("Golpe Aplastante", "Aturde", 14, 0, 0).with_status("aturdido", 1)])
+		1: b = _enemy("Reina Araña", 122, 4, 170, 13, 6, 11,
+			[SkillData.create("Telaraña", "Reduce defensa", 0, 0, 0).with_status("debil", 3),
+			SkillData.create("Mordisco Venenoso", "Veneno", 12, 0, 0).with_status("sangrado", 3)])
+		2: b = _enemy("Ogro de la Cripta", 109, 5, 250, 18, 9, 7,
+			[SkillData.create("Rugido", "Reduce defensa", 0, 0, 0).with_status("debil", 3),
+			SkillData.create("Golpe Demoledor", "Daño muy alto", 32, 0, 0)])
+		3: b = _enemy("Espectro Real", 121, 6, 200, 20, 7, 14,
+			[SkillData.create("Lamento", "Aturde", 0, 0, 0).with_status("aturdido", 2),
+			SkillData.create("Toque Gélido", "Daño y debilita", 24, 0, 0).with_status("debil", 2)])
+		_: b = _enemy("Lord Vampiro", 111, 7, 290, 24, 11, 13,
+			[SkillData.create("Sed Eterna", "Daño y sangrado", 28, 0, 0).with_status("sangrado", 4),
+			SkillData.create("Orgullo Ancestral", "Aumenta su ataque", 0, 0, 0).with_status("furia", 3, true)])
 	b.is_boss = true
-	b.max_hp = int(b.max_hp * 2.5)
-	b.hp = b.max_hp
-	b.attack = int(b.attack * 1.3)
-	b.defense = int(b.defense * 1.5)
+	_scale_for_floor(b, floor_num)
 	return b
 
 static func get_enemy_count_for_difficulty(difficulty: int) -> int:

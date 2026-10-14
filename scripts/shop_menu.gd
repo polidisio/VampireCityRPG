@@ -24,6 +24,7 @@ func _ready():
 	stock.append_array(ItemData.get_all_consumables())
 	stock.append_array(ItemData.get_all_weapons())
 	stock.append_array(ItemData.get_all_armors())
+	stock.append_array(ItemData.get_all_accessories())
 	for item in stock:
 		var b = Button.new()
 		b.text = "%s %d" % [item.name, item.value]

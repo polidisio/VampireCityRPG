@@ -221,8 +221,19 @@ func _spawn_floor():
 	var w = floor_size.x
 	var h = floor_size.y
 	for n in randi_range(4, 7):
-		_make_area([108, 120, 121, 122].pick_random(), 14, _free_pos(Rect2(120, 32, w - 152, h - 64)), try_start_battle)
-	_make_area(109, 24, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle).set_meta("boss", true)
+		var group = _enemy_group()
+		_make_area(group[0].sprite_tile, 14, _free_pos(Rect2(120, 32, w - 152, h - 64)), try_start_battle).set_meta("enemies", group)
+	var boss = CharacterData.create_boss(floor_num)
+	var ba = _make_area(boss.sprite_tile, 24, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle)
+	ba.set_meta("boss", true)
+	ba.set_meta("enemies", [boss])
+
+func _enemy_group() -> Array[CharacterData]:
+	var difficulty = clampi(floor_num, 1, 5)
+	var group: Array[CharacterData] = []
+	for i in CharacterData.get_enemy_count_for_difficulty(difficulty):
+		group.append(CharacterData.get_random_enemy(difficulty, floor_num))
+	return group
 
 func _open_shop():
 	busy = true
@@ -249,10 +260,11 @@ func _talk():
 	if q.is_empty():
 		_open_dialog("Anciano: Has cumplido todos mis encargos, cazador. La torre es tuya.")
 		return
+	quests.counters["floor"] = max_floor
 	var item = ItemData.find_by_id(q.item)
 	var text = "Anciano: %s\nProgreso: %d/%d (%s)\nRecompensa: %d oro + %s" % [
 		q.title, mini(quests.counters[q.kind], q.goal), q.goal,
-		"enemigos derrotados" if q.kind == "kill" else "jefes derrotados", q.gold, item.name]
+		QuestLog.KIND_TEXT[q.kind], q.gold, item.name]
 	_open_dialog(text, [["Cobrar", _claim.bind(q)]] if quests.is_ready(q) else [])
 
 func _claim(q: Dictionary):
@@ -278,13 +290,9 @@ func try_start_battle(enemy_node: Area2D):
 	if busy:
 		return
 	current_enemy = enemy_node
-	var difficulty = clampi(floor_num, 1, 5) # ponytail: dificultad máx 5 hasta tener más enemigos
 	var enemies: Array[CharacterData] = []
-	if enemy_node.has_meta("boss"):
-		enemies.append(CharacterData.create_boss(floor_num))
-	else:
-		for i in range(CharacterData.get_enemy_count_for_difficulty(difficulty)):
-			enemies.append(CharacterData.get_random_enemy(difficulty, floor_num))
+	enemies.assign(enemy_node.get_meta("enemies"))
+	battle_system.floor_num = floor_num
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	battle_system.start_battle(player.character_data, enemies, player_inventory)
