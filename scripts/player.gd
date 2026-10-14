@@ -10,7 +10,6 @@ var character_data: CharacterData
 var direction: Vector2 = Vector2.DOWN
 
 func _ready():
-	character_data = CharacterData.create_noble()
 	position = Vector2(160, 100)
 	update_sprite_color()
 

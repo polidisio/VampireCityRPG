@@ -1,6 +1,8 @@
 extends Control
 
 signal skill_selected(index: int)
+signal item_selected(item: ItemData)
+signal item_pressed
 
 @onready var player_hp_label = $Panel/VBox/PlayerHP
 @onready var player_mp_label = $Panel/VBox/PlayerMP
@@ -14,10 +16,18 @@ var player_char: CharacterData
 var enemy_team: Array = []
 
 func _ready():
+	var scroll = ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(150, 54)
+	scroll.visible = false
+	$Panel.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	skill_menu = VBoxContainer.new()
-	skill_menu.visible = false
-	$Panel.add_child(skill_menu)
-	skill_menu.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	scroll.add_child(skill_menu)
+	var ib = Button.new()
+	ib.text = "Objeto"
+	menu.add_child(ib)
+	menu.move_child(ib, 2)
+	ib.pressed.connect(func(): item_pressed.emit())
 	log_label = Label.new()
 	log_label.position = Vector2(10, 10)
 	add_child(log_label)
@@ -29,7 +39,7 @@ func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[C
 	log_label.text = ""
 	update_stats()
 	menu.visible = false
-	skill_menu.visible = false
+	skill_menu.get_parent().visible = false
 
 func update_stats():
 	if player_char:
@@ -41,26 +51,31 @@ func update_stats():
 	enemy_hp_label.text = " | ".join(parts)
 
 func show_player_menu():
-	skill_menu.visible = false
+	skill_menu.get_parent().visible = false
 	menu.visible = true
 
 func show_skill_menu(skills: Array):
+	_show_list(skills.map(func(sk): return "%s (%d MP)" % [sk.name, sk.mp_cost]), func(i): skill_selected.emit(i))
+
+func show_item_menu(items: Array):
+	_show_list(items.map(func(it): return it.name), func(i): item_selected.emit(items[i]))
+
+func _show_list(labels: Array, on_pick: Callable):
 	for c in skill_menu.get_children():
 		c.queue_free()
-	for i in skills.size():
+	for i in labels.size():
 		var b = Button.new()
-		b.text = "%s (%d MP)" % [skills[i].name, skills[i].mp_cost]
+		b.text = labels[i]
 		b.pressed.connect(func():
-			skill_menu.visible = false
-			menu.visible = false
-			skill_selected.emit(i))
+			skill_menu.get_parent().visible = false
+			on_pick.call(i))
 		skill_menu.add_child(b)
 	var back = Button.new()
 	back.text = "Volver"
 	back.pressed.connect(show_player_menu)
 	skill_menu.add_child(back)
 	menu.visible = false
-	skill_menu.visible = true
+	skill_menu.get_parent().visible = true
 
 func add_log(text: String):
 	log_lines.append(text)

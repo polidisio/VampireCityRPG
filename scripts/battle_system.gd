@@ -20,6 +20,8 @@ func _ready():
 	if ui:
 		ui.visible = false
 		ui.skill_selected.connect(_on_skill_selected)
+		ui.item_selected.connect(_on_item_selected)
+		ui.item_pressed.connect(_on_item_pressed)
 	else:
 		push_error("BattleSystem: UI no encontrada")
 
@@ -183,6 +185,24 @@ func _on_attack_pressed():
 func _on_skill_pressed():
 	if is_player_turn and is_battle_active:
 		ui.show_skill_menu(player_team[0].skills)
+
+func _on_item_pressed():
+	if not (is_player_turn and is_battle_active):
+		return
+	var usable = player_inventory.get_consumables() if player_inventory else []
+	if usable.is_empty():
+		ui.add_log("¡No tienes objetos!")
+		return
+	ui.show_item_menu(usable)
+
+func _on_item_selected(item: ItemData):
+	if not (is_player_turn and is_battle_active):
+		return
+	player_team[0].use_item(item)
+	player_inventory.remove_item(item)
+	ui.add_log("%s usa %s" % [player_team[0].character_name, item.name])
+	ui.update_stats()
+	next_turn()
 
 func _on_skill_selected(index: int):
 	player_use_skill(index, first_alive_enemy())

@@ -80,3 +80,10 @@ static func get_all_consumables() -> Array[ItemData]:
 		create_consumable("Éter Mediano", "Restaura 40 MP", 0, 40, 30),
 		create_consumable("Poción Mixta", "Restaura 40 HP y 20 MP", 40, 20, 25)
 	]
+
+static func find_by_id(item_id: String) -> ItemData:
+	for list in [get_all_weapons(), get_all_armors(), get_all_consumables()]:
+		for i in list:
+			if i.id == item_id:
+				return i
+	return null

@@ -114,6 +114,28 @@ func take_damage(amount: int) -> int:
 	hp = max(0, hp - actual_damage)
 	return actual_damage
 
+func equip(item: ItemData) -> ItemData:
+	var slot = {ItemData.ItemType.WEAPON: "weapon", ItemData.ItemType.ARMOR: "armor", ItemData.ItemType.ACCESSORY: "accessory"}[item.type]
+	var old: ItemData = equipment[slot]
+	if old:
+		attack -= old.attack_bonus
+		defense -= old.defense_bonus
+	equipment[slot] = item
+	attack += item.attack_bonus
+	defense += item.defense_bonus
+	return old
+
+func use_item(item: ItemData):
+	heal(item.hp_restore)
+	mp = min(max_mp, mp + item.mp_restore)
+
+static func create_for_class(c: ClassType) -> CharacterData:
+	match c:
+		ClassType.SALVAJE: return create_salvaje()
+		ClassType.DHAMPIR: return create_dhamphir()
+		ClassType.HEMOMANTE: return create_hemomante()
+		_: return create_noble()
+
 func heal(amount: int):
 	hp = min(max_hp, hp + amount)
 
