@@ -224,6 +224,15 @@ static func get_random_enemy(difficulty: int = 1) -> CharacterData:
 	var idx = randi() % enemies.size()
 	return enemies[idx].call()
 
+static func create_boss(floor_num: int) -> CharacterData:
+	var b = get_random_enemy(clampi(floor_num, 1, 5))
+	b.character_name = "Jefe " + b.character_name
+	b.max_hp *= 3
+	b.hp = b.max_hp
+	b.attack = int(b.attack * 1.5)
+	b.defense *= 2
+	return b
+
 static func get_enemy_count_for_difficulty(difficulty: int) -> int:
 	match difficulty:
 		1: return 1

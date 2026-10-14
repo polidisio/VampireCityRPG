@@ -1,15 +1,15 @@
 # Roadmap
 - [x] Fase 0: limpiar y arreglar bugs (auto-battle, skills, run, walk anim, prints, main.gd)
 - [x] Fase 1: inventario (I), equipo, objetos en combate, selección de clase, guardado (user://save.json)
-- [ ] Fase 2: hub (tienda/NPC) + torre de pisos con jefes, enemigos en mapa
+- [x] Fase 2: hub (tienda/NPC) + torre de pisos con jefes, enemigos en mapa
 - [ ] Fase 3: skills por clase, estados, diálogos/misiones, sonido, arte (Kenney / propio / IA), export móvil
 
-## Plan Fase 2 (pendiente de confirmar)
+## Plan Fase 2 (hecho)
 1. [x] Estado de piso: `floor` en SaveGame (+ inventory/gold ya guardados). Dificultad = piso.
 2. [x] Enemigos en mapa: 2-4 nodos `Area2D` (ColorRect rojo) por piso; tocar uno → combate con `difficulty = floor`; al ganar, desaparece. Quitar ENTER-para-combatir.
-3. Jefe por piso: `CharacterData.create_boss(floor)` (stats x2-3); escaleras `Area2D` aparecen al matar al jefe → `floor += 1`, regenerar piso.
-4. Hub (piso 0 / sótano, escena `hub.tscn` o modo en level.gd): NPC tienda (comprar/vender con `ItemData`, oro) + descanso (HP/MP full, coste oro). Botón/escalera para bajar a la torre.
-5. Guardar piso máximo; test headless de tienda + progresión de piso.
+3. [x] Jefe por piso: `CharacterData.create_boss(floor)` (stats x2-3); escaleras `Area2D` aparecen al matar al jefe → `floor += 1`, regenerar piso.
+4. [x] Hub (piso 0 / sótano, escena `hub.tscn` o modo en level.gd): NPC tienda (comprar/vender con `ItemData`, oro) + descanso (HP/MP full, coste oro). Botón/escalera para bajar a la torre.
+5. [x] Guardar piso máximo; test headless de tienda + progresión de piso.
 
 Decisión simple: un solo `level.gd` que genera el piso por código (hub si floor==0), sin escenas nuevas por piso.
 
