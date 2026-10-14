@@ -5,6 +5,8 @@ extends Node2D
 
 var busy: bool = false
 var player_inventory: Inventory
+var floor_num: int = 1
+var current_enemy: Area2D
 
 func _ready():
 	battle_system.battle_ended.connect(_on_battle_ended)
@@ -16,6 +18,8 @@ func _ready():
 	else:
 		player.character_data = saved[0]
 		player_inventory = saved[1]
+		floor_num = saved[2]
+	_spawn_enemies()
 
 func _show_class_select():
 	busy = true
@@ -41,14 +45,12 @@ func _show_class_select():
 	add_child(layer)
 
 func _save():
-	SaveGame.save(player.character_data, player_inventory)
+	SaveGame.save(player.character_data, player_inventory, floor_num)
 
 func _unhandled_input(event):
 	if busy:
 		return
-	if event.is_action_pressed("ui_accept"):
-		try_start_battle()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_I:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_I:
 		_open_inventory()
 
 func _open_inventory():
@@ -61,8 +63,32 @@ func _open_inventory():
 		_save())
 	add_child(menu)
 
-func try_start_battle():
-	var difficulty = 1
+func _spawn_enemies():
+	$FloorLabel.text = "PISO %d" % floor_num
+	for n in randi_range(2, 4):
+		var a = Area2D.new()
+		var r = ColorRect.new()
+		r.size = Vector2(10, 10)
+		r.position = Vector2(-5, -5)
+		r.color = Color(0.5, 0.1, 0.6)
+		var cs = CollisionShape2D.new()
+		cs.shape = RectangleShape2D.new()
+		cs.shape.size = Vector2(10, 10)
+		a.add_child(r)
+		a.add_child(cs)
+		# ponytail: posición aleatoria, lejos del jugador (160,100)
+		while true:
+			a.position = Vector2(randf_range(20, 300), randf_range(30, 140))
+			if a.position.distance_to(Vector2(160, 100)) > 50:
+				break
+		a.body_entered.connect(func(_b): try_start_battle(a))
+		add_child(a)
+
+func try_start_battle(enemy_node: Area2D):
+	if busy:
+		return
+	current_enemy = enemy_node
+	var difficulty = clampi(floor_num, 1, 5) # ponytail: dificultad máx 5 hasta tener más enemigos
 	var enemy_count = CharacterData.get_enemy_count_for_difficulty(difficulty)
 	var enemies: Array[CharacterData] = []
 	for i in range(enemy_count):
@@ -78,6 +104,7 @@ func _end_battle():
 func _on_battle_ended(victory: bool):
 	_end_battle()
 	if victory:
+		current_enemy.queue_free()
 		_save()
 	else:
 		# ponytail: sin penalización, revive con HP/MP completos
@@ -89,4 +116,6 @@ func _on_battle_ended(victory: bool):
 
 func _on_battle_fled():
 	_end_battle()
+	# ponytail: empuja al jugador fuera del enemigo para no re-disparar
+	player.position += (player.position - current_enemy.position).normalized() * 24
 	_save()
