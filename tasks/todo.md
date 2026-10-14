@@ -19,7 +19,7 @@ Fase 3 es grande: la divido en 3a/3b/3c, una por sesión/commit.
 1. [x] Skills por clase: 4-5 por clase (Noble/Salvaje/Dhampir/Hemomante), desbloqueo por nivel, en `create_*` + `learn_skills_for_level()` en `level_up`.
 2. [x] Estados: `statuses: Dictionary` en CharacterData (sangrado, aturdido, defensa↓, buff ATK) con turnos restantes; tick al inicio de turno en `battle_system`; `SkillData.status`/`status_turns`. Enemigos usan sus skills (hoy solo atacan normal).
 **3b Contenido:**
-3. Diálogos + misiones: NPC en hub (`DialogBox` simple + `QuestData`: "mata N enemigos / derrota jefe del piso X", recompensa oro/objeto), progreso guardado en save.
+3. [x] Diálogos + misiones: NPC en hub (`DialogBox` simple + `QuestData`: "mata N enemigos / derrota jefe del piso X", recompensa oro/objeto), progreso guardado en save.
 **3c Pulido:**
 4. Sonido: SFX/música con `AudioStreamPlayer` (necesito archivos: ¿Kenney/CC0?).
 5. Arte: sprites (Kenney/propio/IA) reemplazando ColorRect.

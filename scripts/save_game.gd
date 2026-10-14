@@ -6,8 +6,8 @@ const STATS = ["level", "experience", "experience_to_next_level", "hp", "max_hp"
 static func exists() -> bool:
 	return FileAccess.file_exists(PATH)
 
-static func save(c: CharacterData, inv: Inventory, floor_num: int = 1, max_floor: int = 1) -> void:
-	var d = {"class": c.class_type, "gold": inv.gold, "floor": floor_num, "max_floor": max_floor,
+static func save(c: CharacterData, inv: Inventory, floor_num: int = 1, max_floor: int = 1, quests: QuestLog = null) -> void:
+	var d = {"class": c.class_type, "gold": inv.gold, "floor": floor_num, "max_floor": max_floor, "quests": (quests if quests else QuestLog.new()).to_dict(),
 		"items": inv.items.map(func(i): return i.id), "equipment": {}}
 	for s in STATS:
 		d[s] = c.get(s)
@@ -16,7 +16,7 @@ static func save(c: CharacterData, inv: Inventory, floor_num: int = 1, max_floor
 	var f = FileAccess.open(PATH, FileAccess.WRITE)
 	f.store_string(JSON.stringify(d))
 
-# Returns [CharacterData, Inventory, floor, max_floor] or [] if missing/corrupt.
+# Returns [CharacterData, Inventory, floor, max_floor, QuestLog] or [] if missing/corrupt.
 static func load_game() -> Array:
 	if not exists():
 		return []
@@ -37,4 +37,4 @@ static func load_game() -> Array:
 		if it:
 			inv.items.append(it)
 	var fl = maxi(0, int(d.get("floor", 1)))
-	return [c, inv, fl, maxi(fl, int(d.get("max_floor", 1)))]
+	return [c, inv, fl, maxi(fl, int(d.get("max_floor", 1))), QuestLog.from_dict(d.get("quests", {}))]

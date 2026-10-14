@@ -7,6 +7,7 @@ var busy: bool = false
 var player_inventory: Inventory
 var floor_num: int = 0 # 0 = hub
 var max_floor: int = 1
+var quests := QuestLog.new()
 var nearby: Callable
 var msg: Label
 var current_enemy: Area2D
@@ -23,6 +24,7 @@ func _ready():
 		player_inventory = saved[1]
 		floor_num = saved[2]
 		max_floor = saved[3]
+		quests = saved[4]
 	msg = Label.new()
 	msg.position = Vector2(10, 134)
 	add_child(msg)
@@ -52,7 +54,7 @@ func _show_class_select():
 	add_child(layer)
 
 func _save():
-	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor)
+	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor, quests)
 
 func _unhandled_input(event):
 	if busy:
@@ -130,6 +132,7 @@ func _spawn_floor():
 		$FloorLabel.text = "HUB - PISO MAX %d" % max_floor
 		_make_area(Color(0.2, 0.4, 0.9), Vector2(12, 12), Vector2(80, 70), _open_shop, "E: Tienda")
 		_make_area(Color(0.2, 0.8, 0.3), Vector2(12, 12), Vector2(240, 70), _rest, "E: Descansar (10 oro)")
+		_make_area(Color(0.7, 0.3, 0.8), Vector2(12, 12), Vector2(160, 40), _talk, "E: Hablar con el Anciano")
 		_make_area(Color(0.9, 0.8, 0.2), Vector2(14, 14), Vector2(160, 150), func(_a): _go_floor(max_floor))
 		return
 	$FloorLabel.text = "PISO %d  (H: hub)" % floor_num
@@ -146,6 +149,33 @@ func _open_shop():
 		player.process_mode = Node.PROCESS_MODE_INHERIT
 		_save())
 	add_child(menu)
+
+func _open_dialog(text: String, actions: Array = []):
+	busy = true
+	player.process_mode = Node.PROCESS_MODE_DISABLED
+	var box = DialogBox.new(text, actions)
+	box.closed.connect(func():
+		busy = false
+		player.process_mode = Node.PROCESS_MODE_INHERIT)
+	add_child(box)
+
+func _talk():
+	var q = quests.current()
+	if q.is_empty():
+		_open_dialog("Anciano: Has cumplido todos mis encargos, cazador. La torre es tuya.")
+		return
+	var item = ItemData.find_by_id(q.item)
+	var text = "Anciano: %s\nProgreso: %d/%d (%s)\nRecompensa: %d oro + %s" % [
+		q.title, mini(quests.counters[q.kind], q.goal), q.goal,
+		"enemigos derrotados" if q.kind == "kill" else "jefes derrotados", q.gold, item.name]
+	_open_dialog(text, [["Cobrar", _claim.bind(q)]] if quests.is_ready(q) else [])
+
+func _claim(q: Dictionary):
+	quests.claimed.append(q.id)
+	player_inventory.add_gold(q.gold)
+	player_inventory.add_item(ItemData.find_by_id(q.item))
+	_save()
+	_talk()
 
 func _rest():
 	var c = player.character_data
@@ -179,7 +209,9 @@ func _end_battle():
 func _on_battle_ended(victory: bool):
 	_end_battle()
 	if victory:
+		quests.add("kill", battle_system.enemy_team.size())
 		if current_enemy.has_meta("boss"):
+			quests.add("boss")
 			# lejos del jugador (está pegado al jefe) para no activar las escaleras al instante
 			var pos = (current_enemy.position + (current_enemy.position - player.position).normalized() * 40).clamp(Vector2(15, 25), Vector2(305, 145))
 			_make_area(Color(0.9, 0.8, 0.2), Vector2(14, 14), pos, func(_a): _go_floor(floor_num + 1))
