@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 class_name CharacterData
 
 enum ClassType { NOBLE, SALVAJE, DHAMPIR, HEMOMANTE }
@@ -36,8 +36,8 @@ static func create_noble() -> CharacterData:
 	new_char.defense = 8
 	new_char.speed = 12
 	new_char.skills = [
-		SkillData.create("Golpe Sombrío", "Daño moderado", 10, 15, 5),
-		SkillData.create("Presencia Amenazante", "Reduce defensa enemy", 15, 0, 10)
+		SkillData.create("Golpe Sombrío", "Daño moderado", 15, 0, 5),
+		SkillData.create("Presencia Amenazante", "Daño intimidante", 15, 0, 10)
 	]
 	return new_char
 
@@ -53,8 +53,8 @@ static func create_salvaje() -> CharacterData:
 	new_char.defense = 15
 	new_char.speed = 8
 	new_char.skills = [
-		SkillData.create("Golpe Brutal", "Daño alto", 15, 20, 0),
-		SkillData.create("Piel de Acero", "Aumenta defensa", 20, 0, 15)
+		SkillData.create("Golpe Brutal", "Daño alto", 20, 0, 5),
+		SkillData.create("Piel de Acero", "Golpe con armadura", 20, 0, 15)
 	]
 	return new_char
 
@@ -70,8 +70,8 @@ static func create_dhamphir() -> CharacterData:
 	new_char.defense = 5
 	new_char.speed = 15
 	new_char.skills = [
-		SkillData.create("Tiro Preciso", "Daño a distancia", 12, 18, 0),
-		SkillData.create("Disparo Sangriento", "Drena vida", 18, 25, 8)
+		SkillData.create("Tiro Preciso", "Daño a distancia", 18, 0, 3),
+		SkillData.create("Disparo Sangriento", "Daño fuerte", 25, 0, 8)
 	]
 	return new_char
 
@@ -87,8 +87,8 @@ static func create_hemomante() -> CharacterData:
 	new_char.defense = 5
 	new_char.speed = 10
 	new_char.skills = [
-		SkillData.create("Proyectil de Sangre", "Daño mágico", 15, 20, 10),
-		SkillData.create("Curación-blood", "Restaura HP", 20, -30, 15)
+		SkillData.create("Proyectil de Sangre", "Daño mágico", 20, 0, 10),
+		SkillData.create("Curación-blood", "Restaura HP", 0, 30, 15)
 	]
 	return new_char
 
@@ -108,7 +108,6 @@ func level_up():
 	attack += 2
 	defense += 1
 	speed += 1
-	print("%s subió a nivel %d" % [character_name, level])
 
 func take_damage(amount: int) -> int:
 	var actual_damage = max(1, amount - defense)

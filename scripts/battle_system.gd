@@ -2,6 +2,7 @@ extends Node2D
 class_name BattleSystem
 
 signal battle_ended(victory: bool)
+signal battle_fled
 signal turn_changed(actor_name: String)
 
 var player_team: Array[CharacterData] = []
@@ -13,21 +14,20 @@ var is_player_turn: bool = true
 
 var ui: Control
 var player_inventory: Inventory
-const DEBUG_AUTO_BATTLE = true
 
 func _ready():
 	ui = $BattleUI
 	if ui:
 		ui.visible = false
-		print("UI encontrada correctamente")
+		ui.skill_selected.connect(_on_skill_selected)
 	else:
-		print("ERROR: UI no encontrada")
+		push_error("BattleSystem: UI no encontrada")
 
 func start_battle(player: CharacterData, enemies: Array[CharacterData], inventory: Inventory = null):
-	print("start_battle llamado")
 	player_inventory = inventory
 	player_team = [player]
 	enemy_team = enemies
+	current_turn_index = -1
 	calculate_turn_order()
 	is_battle_active = true
 	is_player_turn = true
@@ -35,14 +35,9 @@ func start_battle(player: CharacterData, enemies: Array[CharacterData], inventor
 	if ui:
 		ui.visible = true
 		ui.setup_battle(player_team, enemy_team)
-		# Refresh UI statistics after wiring up
 		ui.update_stats()
-		print("UI debería ser visible ahora")
 	else:
-		print("ERROR: UI es null")
-	
-	print("¡Combate iniciado!")
-	print("Orden de turnos: ", turn_order)
+		push_error("BattleSystem: UI es null")
 	next_turn()
 
 func calculate_turn_order():
@@ -69,14 +64,15 @@ func next_turn():
 	
 	if is_player_turn:
 		ui.show_player_menu()
-		if DEBUG_AUTO_BATTLE:
-			# Auto-advance player's turn after a short delay for debugging
-			await get_tree().create_timer(0.3).timeout
-			if is_battle_active:
-				player_attack(0)
 	else:
 		await get_tree().create_timer(1.0).timeout
 		enemy_turn()
+
+func first_alive_enemy() -> int:
+	for i in enemy_team.size():
+		if enemy_team[i].hp > 0:
+			return i
+	return -1
 
 func player_attack(target_index: int):
 	if not is_player_turn or not is_battle_active:
@@ -106,15 +102,16 @@ func player_use_skill(skill_index: int, target_index: int):
 	
 	if not attacker.use_mp(skill.mp_cost):
 		ui.add_log("¡No tienes suficiente MP!")
+		ui.show_player_menu()
 		return
 	
 	if skill.is_heal:
 		attacker.heal(skill.heal)
-		ui.add_log("%s usa %s y recupera %d HP!" % [attacker.character_name, skill.character_name, skill.heal])
+		ui.add_log("%s usa %s y recupera %d HP!" % [attacker.character_name, skill.name, skill.heal])
 	else:
 		var target = enemy_team[target_index]
 		target.take_damage(skill.damage)
-		ui.add_log("%s usa %s en %s por %d daños!" % [attacker.character_name, skill.character_name, target.character_name, skill.damage])
+		ui.add_log("%s usa %s en %s por %d daños!" % [attacker.character_name, skill.name, target.character_name, skill.damage])
 	
 	# Update UI stats after skill usage
 	if ui:
@@ -125,7 +122,7 @@ func player_use_skill(skill_index: int, target_index: int):
 		next_turn()
 
 func enemy_turn():
-	var enemy = enemy_team[0]
+	var enemy = turn_order[current_turn_index].character
 	var target = player_team[0]
 	
 	var damage = enemy.attack
@@ -180,19 +177,21 @@ func check_battle_end():
 
 func _on_attack_pressed():
 	if is_player_turn and is_battle_active:
-		player_attack(0)
+		ui.menu.visible = false
+		player_attack(first_alive_enemy())
 
 func _on_skill_pressed():
 	if is_player_turn and is_battle_active:
-		var player = player_team[0]
-		if player.skills.size() > 0:
-			player_use_skill(0, 0)
+		ui.show_skill_menu(player_team[0].skills)
+
+func _on_skill_selected(index: int):
+	player_use_skill(index, first_alive_enemy())
 
 func _on_run_pressed():
 	if is_player_turn and is_battle_active:
 		ui.add_log("¡Escapaste del combate!")
 		is_battle_active = false
-		battle_ended.emit(false)
+		battle_fled.emit()
 
 func generate_drops() -> Array[ItemData]:
 	var drops: Array[ItemData] = []
