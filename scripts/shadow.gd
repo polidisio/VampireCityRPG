@@ -2,7 +2,7 @@ class_name Shadow
 
 static var _tex: ImageTexture
 
-# Añade una sombra elíptica bajo un sprite de 16x16 (detrás de él, hereda escala y transparencia).
+# Añade una sombra elíptica bajo un sprite (detrás de él, hereda escala y transparencia); se ajusta a su ancho/alto.
 static func attach(spr: Sprite2D) -> void:
 	if _tex == null:
 		var img = Image.create(16, 6, false, Image.FORMAT_RGBA8)
@@ -17,5 +17,7 @@ static func attach(spr: Sprite2D) -> void:
 	s.texture = _tex
 	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	s.show_behind_parent = true
-	s.position = Vector2(0, 7)
+	var size = spr.texture.get_size() if spr.texture else Vector2(16, 16)
+	s.position = Vector2(0, size.y / 2.0 - 1.0)
+	s.scale = Vector2(maxf(1.0, size.x / 16.0 * 0.8), 1.0)
 	spr.add_child(s)

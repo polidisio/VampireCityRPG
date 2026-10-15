@@ -20,8 +20,8 @@ func _ready():
 	update_sprite()
 
 func update_sprite():
-	var tile = character_data.sprite_tile if character_data else 100
-	sprite.texture = load("res://assets/sprites/tile_%04d.png" % tile)
+	sprite.texture = character_data.texture(true) if character_data else load("res://assets/sprites/tile_0100.png")
+	sprite.offset.y = -(sprite.texture.get_height() - 16) / 2.0 # los pies quedan donde los de un tile de 16
 
 func _physics_process(_delta):
 	var input_direction = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")

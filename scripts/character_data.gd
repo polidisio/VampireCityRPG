@@ -19,6 +19,7 @@ var speed: int = 10
 
 var skills: Array = []
 var sprite_tile: int = 100 # tile de assets/sprites
+var class_art: String = "" # si no está vacío: arte propio en assets/sprites/classes/ (<nombre>.png combate, <nombre>_map.png mapa)
 var is_boss: bool = false
 var statuses: Dictionary = {} # nombre -> turnos restantes
 var equipment: Dictionary = {
@@ -27,11 +28,18 @@ var equipment: Dictionary = {
 	"accessory": null
 }
 
+# Textura de combate (64 px) o, con map=true, de mapa (28 px); los enemigos usan su tile.
+func texture(map: bool = false) -> Texture2D:
+	if class_art != "":
+		return load("res://assets/sprites/classes/%s%s.png" % [class_art, "_map" if map else ""])
+	return load("res://assets/sprites/tile_%04d.png" % sprite_tile)
+
 static func create_noble() -> CharacterData:
 	var new_char = CharacterData.new()
 	new_char.character_name = "Vampiro Noble"
 	new_char.class_type = ClassType.NOBLE
 	new_char.sprite_tile = 100
+	new_char.class_art = "noble"
 	new_char.max_hp = 90
 	new_char.hp = 90
 	new_char.max_mp = 60
@@ -47,6 +55,7 @@ static func create_salvaje() -> CharacterData:
 	new_char.character_name = "Vampiro Salvaje"
 	new_char.class_type = ClassType.SALVAJE
 	new_char.sprite_tile = 87
+	new_char.class_art = "salvaje"
 	new_char.max_hp = 130
 	new_char.hp = 130
 	new_char.max_mp = 30
@@ -62,6 +71,7 @@ static func create_dhamphir() -> CharacterData:
 	new_char.character_name = "Dhampir"
 	new_char.class_type = ClassType.DHAMPIR
 	new_char.sprite_tile = 88
+	new_char.class_art = "dhampir"
 	new_char.max_hp = 90
 	new_char.hp = 90
 	new_char.max_mp = 45
@@ -77,6 +87,7 @@ static func create_hemomante() -> CharacterData:
 	new_char.character_name = "Hemomante"
 	new_char.class_type = ClassType.HEMOMANTE
 	new_char.sprite_tile = 84
+	new_char.class_art = "hemomante"
 	new_char.max_hp = 70
 	new_char.hp = 70
 	new_char.max_mp = 80

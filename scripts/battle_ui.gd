@@ -58,7 +58,7 @@ func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[C
 
 func _make_sprite(c: CharacterData, pos: Vector2, scale_f: float, flip: bool = false) -> void:
 	var spr = Sprite2D.new()
-	spr.texture = load("res://assets/sprites/tile_%04d.png" % c.sprite_tile)
+	spr.texture = c.texture()
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pos
 	spr.scale = Vector2.ONE * scale_f
@@ -69,7 +69,7 @@ func _make_sprite(c: CharacterData, pos: Vector2, scale_f: float, flip: bool = f
 	var lbl = Label.new()
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.size = Vector2(130, 10)
-	lbl.position = pos + Vector2(-65, 8 * scale_f)
+	lbl.position = pos + Vector2(-65, spr.texture.get_height() / 2.0 * scale_f)
 	stage.add_child(lbl)
 	hp_labels[c] = lbl
 
@@ -79,7 +79,7 @@ func _build_stage():
 	sprites.clear()
 	hp_labels.clear()
 	enemy_hp_label.visible = false
-	_make_sprite(player_char, Vector2(60, 66), 3.0)
+	_make_sprite(player_char, Vector2(60, 58), 1.0 if player_char.class_art != "" else 3.0)
 	var n = enemy_team.size()
 	for i in n:
 		var e = enemy_team[i]

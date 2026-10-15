@@ -67,23 +67,33 @@ func _show_class_select():
 	var bg = Panel.new()
 	layer.add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var box = VBoxContainer.new()
-	box.position = Vector2(100, 24)
-	layer.add_child(box)
 	var title = Label.new()
 	title.text = "Elige tu clase"
-	box.add_child(title)
+	title.position = Vector2(112, 12)
+	layer.add_child(title)
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	row.position = Vector2(8, 40)
+	layer.add_child(row)
 	for c in [CharacterData.ClassType.NOBLE, CharacterData.ClassType.SALVAJE, CharacterData.ClassType.DHAMPIR, CharacterData.ClassType.HEMOMANTE]:
 		var data = CharacterData.create_for_class(c)
+		var card = VBoxContainer.new()
+		card.custom_minimum_size.x = 74
+		var pic = TextureRect.new()
+		pic.texture = data.texture()
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		pic.custom_minimum_size = Vector2(74, 64)
+		card.add_child(pic)
 		var b = Button.new()
-		b.text = data.character_name
+		b.text = data.character_name.replace(" ", "\n")
 		b.pressed.connect(func():
 			player.character_data = data
 			layer.queue_free()
 			busy = false
 			player.process_mode = Node.PROCESS_MODE_INHERIT
 			_save())
-		box.add_child(b)
+		card.add_child(b)
+		row.add_child(card)
 	add_child(layer)
 
 func _save():
