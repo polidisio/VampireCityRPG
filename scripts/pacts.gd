@@ -2,11 +2,11 @@ class_name Pacts
 # Pactos: modificadores voluntarios de un run. Más dificultad = más recompensa (Esencia y oro de combate).
 # `bonus` se suma: recompensa = 1 + suma de los bonus de los pactos activos.
 const PACTS = [
-	{"id": "espesa", "name": "Sangre Espesa", "desc": "Enemigos con +25% de vida", "bonus": 0.15},
+	{"id": "espesa", "name": "Sangre Espesa", "desc": "Enemigos con +25% de vida", "bonus": 0.4},
 	{"id": "garras", "name": "Garras Afiladas", "desc": "Enemigos con +20% de ataque", "bonus": 0.15},
-	{"id": "horda", "name": "Horda", "desc": "+1 enemigo por grupo (máx. 5)", "bonus": 0.25},
+	{"id": "horda", "name": "Horda", "desc": "+1 enemigo por grupo (máx. 5)", "bonus": 0.8},
 	{"id": "jefes", "name": "Jefes Furiosos", "desc": "Jefes con +30% de vida y ataque", "bonus": 0.2},
-	{"id": "fragil", "name": "Fragilidad", "desc": "Empiezas con el 70% de la vida", "bonus": 0.1},
+	{"id": "fragil", "name": "Fragilidad", "desc": "Empiezas con el 70% de la vida", "bonus": 0.15},
 	{"id": "ayuno", "name": "Ayuno", "desc": "Sin objetos: ni usarlos ni llevarlos", "bonus": 0.15},
 	{"id": "pobreza", "name": "Pobreza", "desc": "El oro de combate se reduce a la mitad", "bonus": 0.2},
 ]

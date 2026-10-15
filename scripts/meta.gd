@@ -1,17 +1,17 @@
 class_name Meta
 # Metaprogresión: Esencia (se conserva al morir) y mejoras permanentes del altar del hub.
-# Cada mejora cuesta `cost` * (nivel actual + 1). Se aplican al empezar un run (apply_to_run) o las leen otros sistemas.
+# Cada mejora cuesta `cost` * (nivel actual + 1); un run da ~100-300 de Esencia (ver tests/sim_balance.gd). Se aplican al empezar un run (apply_to_run) o las leen otros sistemas.
 const UPGRADES = [
-	{"id": "vida", "name": "Vitalidad", "desc": "+10 de vida máxima al empezar", "max": 5, "cost": 10, "stats": {"max_hp": 10}},
-	{"id": "fuerza", "name": "Fuerza", "desc": "+2 de ataque al empezar", "max": 5, "cost": 12, "stats": {"attack": 2}},
-	{"id": "guardia", "name": "Guardia", "desc": "+1 de defensa al empezar", "max": 5, "cost": 12, "stats": {"defense": 1}},
-	{"id": "celeridad", "name": "Celeridad", "desc": "+1 de velocidad al empezar", "max": 3, "cost": 15, "stats": {"speed": 1}},
-	{"id": "mente", "name": "Mente", "desc": "+8 de maná máximo al empezar", "max": 3, "cost": 10, "stats": {"max_mp": 8}},
-	{"id": "codicia", "name": "Codicia", "desc": "+10% de oro por combate", "max": 5, "cost": 10},
-	{"id": "mochila", "name": "Mochila", "desc": "+1 consumible en la mochila", "max": 3, "cost": 20},
-	{"id": "iniciado", "name": "Iniciado", "desc": "Empiezas con 1 mejora de nivel extra", "max": 2, "cost": 40},
-	{"id": "herencia", "name": "Herencia", "desc": "Empiezas el run con una reliquia", "max": 1, "cost": 60},
-	{"id": "retorno", "name": "Retorno", "desc": "Revives una vez por run con la mitad de vida", "max": 1, "cost": 80},
+	{"id": "vida", "name": "Vitalidad", "desc": "+10 de vida máxima al empezar", "max": 5, "cost": 30, "stats": {"max_hp": 10}},
+	{"id": "fuerza", "name": "Fuerza", "desc": "+2 de ataque al empezar", "max": 5, "cost": 36, "stats": {"attack": 2}},
+	{"id": "guardia", "name": "Guardia", "desc": "+1 de defensa al empezar", "max": 5, "cost": 36, "stats": {"defense": 1}},
+	{"id": "celeridad", "name": "Celeridad", "desc": "+1 de velocidad al empezar", "max": 3, "cost": 45, "stats": {"speed": 1}},
+	{"id": "mente", "name": "Mente", "desc": "+8 de maná máximo al empezar", "max": 3, "cost": 30, "stats": {"max_mp": 8}},
+	{"id": "codicia", "name": "Codicia", "desc": "+10% de oro por combate", "max": 5, "cost": 30},
+	{"id": "mochila", "name": "Mochila", "desc": "+1 consumible en la mochila", "max": 3, "cost": 60},
+	{"id": "iniciado", "name": "Iniciado", "desc": "Empiezas con 1 mejora de nivel extra", "max": 2, "cost": 120},
+	{"id": "herencia", "name": "Herencia", "desc": "Empiezas el run con una reliquia", "max": 1, "cost": 180},
+	{"id": "retorno", "name": "Retorno", "desc": "Revives una vez por run con la mitad de vida", "max": 1, "cost": 240},
 ]
 
 var essence: int = 0

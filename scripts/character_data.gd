@@ -95,12 +95,12 @@ static func create_hemomante() -> CharacterData:
 	new_char.class_type = ClassType.HEMOMANTE
 	new_char.sprite_tile = 84
 	new_char.art = "classes/hemomante"
-	new_char.max_hp = 70
-	new_char.hp = 70
+	new_char.max_hp = 85
+	new_char.hp = 85
 	new_char.max_mp = 80
 	new_char.mp = 80
 	new_char.attack = 10
-	new_char.defense = 5
+	new_char.defense = 7
 	new_char.speed = 10
 	new_char.sync_skills()
 	return new_char
@@ -337,6 +337,15 @@ static func _scale_for_floor(e: CharacterData, floor_num: int) -> void:
 		e.hp = e.max_hp
 		e.attack = int(e.attack * m)
 		e.defense = int(e.defense * m)
+
+# Élite del piso: un enemigo de la dificultad siguiente con +50% de vida y +25% de ataque (lleva la llave del sello).
+static func create_elite(floor_num: int) -> CharacterData:
+	var e = get_random_enemy(mini(clampi(floor_num, 1, 5) + 1, 5), floor_num)
+	e.character_name = "Élite " + e.character_name
+	e.max_hp = int(e.max_hp * 1.5)
+	e.hp = e.max_hp
+	e.attack = int(e.attack * 1.25)
+	return e
 
 static func get_random_enemy(difficulty: int = 1, floor_num: int = 0) -> CharacterData:
 	var enemies: Array[Callable] = []

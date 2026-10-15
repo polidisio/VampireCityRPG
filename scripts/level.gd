@@ -480,11 +480,7 @@ func _build_seal() -> void:
 
 # Un élite por piso, lejos de la entrada: más fuerte, con brillo dorado y la llave flotando sobre él.
 func _spawn_elite() -> void:
-	var e = CharacterData.get_random_enemy(mini(clampi(floor_num, 1, 5) + 1, 5), floor_num)
-	e.character_name = "Élite " + e.character_name
-	e.max_hp = int(e.max_hp * 1.5)
-	e.hp = e.max_hp
-	e.attack = int(e.attack * 1.25)
+	var e = CharacterData.create_elite(floor_num)
 	_scale_enemy(e)
 	var a = _make_area(e.sprite_tile, 24, _free_pos(_roam_rect(), start_pos, 160.0), try_start_battle, "", e.texture(true))
 	a.set_meta("enemies", [e])

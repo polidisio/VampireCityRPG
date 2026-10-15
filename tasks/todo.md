@@ -75,7 +75,7 @@ Decisiones tomadas: progresión **por run** (nivel, habilidades elegidas y reliq
 **G4 Dificultad adaptable**
 8. [x] Pactos (`Pacts`, `PactMenu` al elegir clase): Sangre Espesa, Garras Afiladas, Horda, Jefes Furiosos, Fragilidad, Ayuno y Pobreza; recompensa +% en Esencia y oro, y se recuerdan los del run anterior. Ayuda suave: desde la 2.ª muerte seguida los enemigos pierden un 5% por muerte (máx. 20%) hasta superar un jefe o un récord. `FLOOR_EASE` queda como base.
 **G5 Balance**
-9. [ ] `sim_balance` con elecciones de build; ajustar para que un run medio llegue al piso 5–8 sin meta.
+9. [x] `sim_balance` reescrito: campañas de runs con 4-7 grupos, élite, emboscadas, pozo, sarcófago, jefe, mejoras de nivel, reliquias, altar (gasta Esencia entre runs) y pactos (`CLASS`, `REPS`, `RUNS`, `PACTS`, `META=0`). Resultado: 1.er run ≈ piso 5-6 (4 clases), ~10 tras 6-10 runs con altar; Esencia ~200-400 por run frente a ~3500 de coste total del altar. Ajustes: Hemomante 85 HP/7 def, costes del altar x3, bonos de pactos (Sangre Espesa +40%, Horda +80%, Fragilidad +15%).
 
 ## Plan H: pisos con más chicha (propuesta confirmada: sello, élite con llave, eventos, identidad del jefe)
 Problema: se puede ir directo al jefe, y un jefe desconocido no se distingue de un enemigo.

@@ -7,8 +7,8 @@ func _init():
 	var vida = Meta.UPGRADES.filter(func(u): return u.id == "vida")[0]
 	assert(not m.buy(vida), "sin Esencia no compra")
 	m.essence = 100
-	assert(m.buy(vida) and m.essence == 90 and m.level("vida") == 1, "compra nivel 1")
-	assert(m.cost(vida) == 20 and m.buy(vida) and m.essence == 70, "el coste sube con el nivel")
+	assert(m.buy(vida) and m.essence == 100 - vida.cost and m.level("vida") == 1, "compra nivel 1")
+	assert(m.cost(vida) == 2 * vida.cost and m.buy(vida) and m.essence == 100 - 3 * vida.cost, "el coste sube con el nivel")
 	m.essence = 1000
 	for i in 10:
 		m.buy(vida)

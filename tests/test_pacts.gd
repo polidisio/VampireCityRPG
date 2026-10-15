@@ -4,8 +4,8 @@ extends SceneTree
 func _init():
 	var backup = FileAccess.get_file_as_string(SaveGame.PATH) if SaveGame.exists() else ""
 	assert(Pacts.reward_mult([]) == 1.0, "sin pactos, recompensa base")
-	assert(is_equal_approx(Pacts.reward_mult(["espesa", "horda"]), 1.4), "los bonus se suman")
-	assert(is_equal_approx(Pacts.gold_mult(["pobreza"]), 0.6), "Pobreza: la mitad del oro con su recompensa (1.2 x 0.5)")
+	assert(is_equal_approx(Pacts.reward_mult(["espesa", "horda"]), 1.0 + Pacts.PACTS[0].bonus + Pacts.PACTS[2].bonus), "los bonus se suman")
+	assert(is_equal_approx(Pacts.gold_mult(["pobreza"]), (1.0 + Pacts.PACTS[6].bonus) * 0.5), "Pobreza: la mitad del oro con su recompensa")
 	# enemigos
 	var e = CharacterData.create_ghoul()
 	var hp = e.max_hp
