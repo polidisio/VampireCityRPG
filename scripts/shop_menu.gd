@@ -28,6 +28,8 @@ func _ready():
 	for item in stock:
 		var b = Button.new()
 		b.text = "%s %d" % [item.name, item.value]
+		b.icon = item.icon()
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.tooltip_text = item.description
 		b.pressed.connect(_buy.bind(item))
 		buy_list.add_child(b)
@@ -72,5 +74,7 @@ func refresh():
 	for item in inventory.items:
 		var b = Button.new()
 		b.text = "%s %d" % [item.name, int(item.value * 0.5)]
+		b.icon = item.icon()
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(_sell.bind(item))
 		sell_list.add_child(b)

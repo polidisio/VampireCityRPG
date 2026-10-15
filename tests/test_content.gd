@@ -26,6 +26,7 @@ func _init():
 	for l in [ItemData.get_all_weapons(), ItemData.get_all_armors(), ItemData.get_all_accessories(), ItemData.get_all_consumables()]:
 		for it in l:
 			assert(ItemData.find_by_id(it.id) != null and it.value > 0, it.name)
+			assert(it.icon() != null, "sin icono: " + it.name)
 	for q in QuestLog.QUESTS:
 		assert(ItemData.find_by_id(q.item) != null, q.item)
 		assert(QuestLog.KIND_TEXT.has(q.kind))

@@ -25,11 +25,11 @@ Fase 3 es grande: la divido en 3a/3b/3c, una por sesión/commit.
 5. [x] Arte: sprites (Kenney/propio/IA) reemplazando ColorRect.
 6. [aplazado] Export Android/iOS (necesita plantillas de export + keystore, lo haces tú o te guío).
 
-## Plan pulido visual (A y B hechos; C pendiente)
+## Plan pulido visual (A y B hechos; C: arte propio, iconos y luz hechos; resto pendiente)
 Problemas vistos en captura: texto = fuente vectorial por defecto rasterizada a 320x180 (borroso, desbordado, cortado en tienda/HUD); NPCs sin colisión (el jugador los pisa); paneles de menú semitransparentes (se ve el mapa detrás).
 A. Texto y UI: fuente pixel CC0 (Kenney Fonts) como tema global a tamaños enteros (8/16); rehacer layouts de HUD, tienda, inventario, diálogo y combate; fondo opaco en menús; (opcional) tema de paneles/botones 9-slice Kenney UI.
 B. Personajes: colisión sólida en NPCs (StaticBody) + zona de interacción más grande; sombra bajo sprites; el hint de "E:" sale encima del NPC en vez de en una esquina.
-C. Assets/ambiente (elegir): iconos de objetos en inventario/tienda (tiles 103-131 ya descargados); suelo variado por tramo de pisos; animación en código (andar/idle, orientación); luz/oscuridad con CanvasModulate + PointLight2D; partículas de golpe; pantalla de título.
+C. Assets/ambiente (HECHO: iconos de objetos, luz/oscuridad, arte propio de clases/enemigos; pendiente: suelo por tramo, animación andar/idle, partículas, título): iconos de objetos en inventario/tienda (tiles 103-131 ya descargados); suelo variado por tramo de pisos; animación en código (andar/idle, orientación); luz/oscuridad con CanvasModulate + PointLight2D; partículas de golpe; pantalla de título.
 
 ## Notas de sesión (2026-10-14)
 - Fase 0 y 1 commiteadas (40180b2, f118afa). Godot 4.2.2 en /Applications/Godot.app.

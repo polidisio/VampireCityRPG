@@ -17,6 +17,8 @@ var blocked: Array[Rect2] = [] # paredes/pilares del piso actual (para no spawne
 var ground: TextureRect
 var cam: Camera2D
 var floor_label: Label
+var ambient: CanvasModulate
+static var _glow_tex: GradientTexture2D
 
 func _ready():
 	battle_system.battle_ended.connect(_on_battle_ended)
@@ -56,6 +58,9 @@ func _ready():
 			l.reparent(hud, false)
 		else:
 			hud.add_child(l)
+	ambient = CanvasModulate.new()
+	add_child(ambient)
+	player.add_child(_glow(Color(1, 0.92, 0.8), 110, 0.9))
 	y_sort_enabled = true # el jugador se dibuja delante/detrás de NPCs y enemigos según su y
 	_spawn_floor()
 
@@ -123,6 +128,34 @@ func _open_inventory():
 		_save())
 	add_child(menu)
 
+# Luz redonda con borde suave (radio en px); textura compartida.
+func _glow(color: Color, radius: float, energy: float) -> PointLight2D:
+	if _glow_tex == null:
+		var g = Gradient.new()
+		g.colors = PackedColorArray([Color.WHITE, Color.BLACK])
+		_glow_tex = GradientTexture2D.new()
+		_glow_tex.gradient = g
+		_glow_tex.fill = GradientTexture2D.FILL_RADIAL
+		_glow_tex.fill_from = Vector2(0.5, 0.5)
+		_glow_tex.fill_to = Vector2(1.0, 0.5)
+		_glow_tex.width = 128
+		_glow_tex.height = 128
+	var l = PointLight2D.new()
+	l.texture = _glow_tex
+	l.texture_scale = radius * 2.0 / 128.0
+	l.color = color
+	l.energy = energy
+	return l
+
+# Antorcha: luz cálida que titila.
+func _torch(parent: Node, radius: float) -> void:
+	var l = _glow(Color(1, 0.75, 0.45), radius, 0.6)
+	parent.add_child(l)
+	l.tree_entered.connect(func():
+		var tw = l.create_tween().set_loops()
+		tw.tween_property(l, "energy", 0.4, 0.35 + randf() * 0.2)
+		tw.tween_property(l, "energy", 0.7, 0.35 + randf() * 0.2))
+
 func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: String = "", tex: Texture2D = null) -> Area2D:
 	var a = Area2D.new()
 	var spr = Sprite2D.new()
@@ -141,6 +174,8 @@ func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: 
 	a.add_child(cs)
 	a.position = pos
 	a.add_to_group("floor_obj")
+	if hint != "" or tile == 45: # NPCs y escaleras iluminan su zona
+		_torch(a, 60)
 	if hint != "": # NPC: sólido, y se activa con E mientras estés cerca
 		_add_solid(Rect2(pos + Vector2(-6, -8), Vector2(12, 16)))
 		var lbl = Label.new()
@@ -252,6 +287,8 @@ func _spawn_floor():
 	cam.limit_right = int(floor_size.x)
 	cam.limit_bottom = int(floor_size.y)
 	player.position = start_pos
+	# más oscuro cuanto más alto el piso (mínimo para que se vea a los enemigos)
+	ambient.color = Color(0.62, 0.58, 0.78).lerp(Color(0.28, 0.25, 0.42), minf(floor_num, 10) / 10.0) if tower else Color(0.8, 0.72, 0.72)
 	_build_walls()
 	if not tower:
 		floor_label.text = "HUB - PISO MAX %d" % max_floor
@@ -269,6 +306,7 @@ func _spawn_floor():
 	var boss = CharacterData.create_boss(floor_num)
 	var ba = _make_area(boss.sprite_tile, 32, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle, "", boss.texture(true))
 	ba.set_meta("boss", true)
+	_torch(ba, 70) # el jefe se ve desde lejos
 	ba.set_meta("enemies", [boss])
 
 func _enemy_group() -> Array[CharacterData]:

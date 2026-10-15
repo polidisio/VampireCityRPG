@@ -46,6 +46,8 @@ func refresh():
 	for item in inventory.items:
 		var b = Button.new()
 		b.text = item.name
+		b.icon = item.icon()
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.tooltip_text = item.description
 		b.pressed.connect(_on_item.bind(item))
 		list.add_child(b)

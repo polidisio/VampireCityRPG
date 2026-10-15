@@ -12,6 +12,30 @@ var defense_bonus: int = 0
 var hp_restore: int = 0
 var mp_restore: int = 0
 
+# Iconos: tiles Kenney de assets/sprites; TINTS recolorea (multiplica) para distinguir niveles.
+const ICONS = {
+	"daga_de_plata": 103, "espada_corta": 104, "espada_longa": 106, "hacha_de_guerra": 118, "látigo_encantado": 129,
+	"estaca_sagrada": 107, "guadaña_carmesí": 105,
+	"armadura_de_cuero": 66, "cota_de_mallas": 56, "pechera_de_acero": 54, "armadura_de_placas": 74, "manto_de_sombras": 55, "armadura_sangrienta": 74,
+	"anillo_de_sangre": 101, "amuleto_de_ajo": 102, "colmillo_de_plata": 124, "capa_nocturna": 64,
+	"poción_pequeña": 127, "poción_mediana": 115, "poción_grande": 115, "éter_pequeño": 128, "éter_mediano": 116, "poción_mixta": 114,
+	"éter_grande": 116, "elixir": 113}
+const TINTS = {"guadaña_carmesí": Color(1.5, 0.5, 0.5), "armadura_sangrienta": Color(1.6, 0.5, 0.5), "anillo_de_sangre": Color(1.6, 0.5, 0.5),
+	"poción_grande": Color(1.5, 1.3, 0.5), "éter_grande": Color(1.3, 0.7, 1.5), "elixir": Color(1.5, 1.3, 0.6)}
+static var _icons: Dictionary = {}
+
+func icon() -> Texture2D:
+	if not ICONS.has(id):
+		return null
+	if not _icons.has(id):
+		var img: Image = load("res://assets/sprites/tile_%04d.png" % ICONS[id]).get_image()
+		if TINTS.has(id):
+			for y in img.get_height():
+				for x in img.get_width():
+					img.set_pixel(x, y, img.get_pixel(x, y) * TINTS[id])
+		_icons[id] = ImageTexture.create_from_image(img)
+	return _icons[id]
+
 static func create_weapon(n: String, d: String, atk: int, val: int = 50) -> ItemData:
 	var item = ItemData.new()
 	item.id = n.to_lower().replace(" ", "_")
