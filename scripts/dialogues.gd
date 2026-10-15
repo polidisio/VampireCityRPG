@@ -33,11 +33,25 @@ const NPCS = {
 	"posadera": {
 		"start": [
 			{"when": {"no_gold": true}, "text": "Posadera: Sin monedas no hay cama, cazador. Vuelve con oro.",
-				"options": [{"label": "Descansar (10 oro)", "do": "rest"}]},
+				"options": [{"label": "Descansar (10 oro)", "do": "rest"}, {"label": "Charlar", "go": "charla"}]},
 			{"when": {"hp_below_pct": 50}, "text": "Posadera: Dios mío, estás hecho un asco. Siéntate.",
-				"options": [{"label": "Descansar (10 oro)", "do": "rest"}]},
+				"options": [{"label": "Descansar (10 oro)", "do": "rest"}, {"label": "Charlar", "go": "charla"}]},
+			{"when": {"min_level": 5}, "text": "Posadera: Ya te vas haciendo un nombre por aquí. La cama de siempre, ¿no?",
+				"options": [{"label": "Descansar (10 oro)", "do": "rest"}, {"label": "Charlar", "go": "charla"}]},
 			{"text": "Posadera: Bienvenido. ¿Una cama para el cazador?",
-				"options": [{"label": "Descansar (10 oro)", "do": "rest"}]},
+				"options": [{"label": "Descansar (10 oro)", "do": "rest"}, {"label": "Charlar", "go": "charla"}]},
+		],
+		"charla": [
+			{"when": {"min_floor": 10}, "text": "Posadera: Los que vuelven de arriba no hablan. Piden vino y miran la puerta.",
+				"options": [{"label": "Más cotilleos", "go": "cotilleo"}, {"label": "Volver", "go": "start"}]},
+			{"text": "Posadera: Cada noche oigo pasos en el tejado. Dicen que son murciélagos. Yo no lo creo.",
+				"options": [{"label": "Más cotilleos", "go": "cotilleo"}, {"label": "Volver", "go": "start"}]},
+		],
+		"cotilleo": [
+			{"when": {"min_level": 5}, "text": "Posadera: El Anciano habla bien de ti. Y eso que no habla bien de nadie.",
+				"options": [{"label": "Volver", "go": "start"}]},
+			{"text": "Posadera: El Mercader cobra caro, pero su acero es bueno. Regatea poco, ¿eh?",
+				"options": [{"label": "Volver", "go": "start"}]},
 		],
 	},
 }
