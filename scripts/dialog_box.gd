@@ -5,10 +5,12 @@ signal closed
 
 var text: String
 var actions: Array # [[etiqueta, Callable], ...]
+var portrait: Texture2D
 
-func _init(t: String, acts: Array = []):
+func _init(t: String, acts: Array = [], face: Texture2D = null):
 	text = t
 	actions = acts
+	portrait = face
 
 func _ready():
 	var panel = Panel.new()
@@ -17,9 +19,17 @@ func _ready():
 	var label = Label.new()
 	label.text = text
 	label.position = Vector2(12, 12)
-	label.size = Vector2(296, 110)
+	label.size = Vector2(296 if not portrait else 216, 110)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel.add_child(label)
+	if portrait:
+		var pic = TextureRect.new()
+		pic.texture = portrait
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.position = Vector2(236, 10)
+		pic.size = Vector2(72, 72)
+		panel.add_child(pic)
 	var row = HBoxContainer.new()
 	row.position = Vector2(12, 140)
 	panel.add_child(row)

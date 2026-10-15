@@ -21,6 +21,7 @@ var skills: Array = []
 var sprite_tile: int = 100 # tile de assets/sprites
 var art: String = "" # arte propio, ruta bajo assets/sprites/ sin extensión (classes/noble, enemies/bat): <art>.png combate, <art>_map.png mapa
 var is_boss: bool = false
+var intent_skill: SkillData = null # solo enemigos: habilidad que usará en su próximo turno (null = ataque básico)
 var statuses: Dictionary = {} # nombre -> turnos restantes
 var equipment: Dictionary = {
 	"weapon": null,
@@ -168,9 +169,13 @@ func level_up():
 	speed += 1
 	sync_skills()
 
-func take_damage(amount: int) -> int:
+# Daño que causaría un golpe de `amount` (lo usan take_damage y las intenciones de los enemigos).
+func preview_damage(amount: int) -> int:
 	var def = int(defense * 0.5) if has_status("debil") else defense
-	var actual_damage = max(1, amount - def)
+	return max(1, amount - def)
+
+func take_damage(amount: int) -> int:
+	var actual_damage = preview_damage(amount)
 	hp = max(0, hp - actual_damage)
 	return actual_damage
 

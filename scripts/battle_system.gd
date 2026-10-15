@@ -38,6 +38,8 @@ func start_battle(player: CharacterData, enemies: Array[CharacterData], inventor
 	new_level = 0
 	new_skills = []
 	enemy_team = enemies
+	for e in enemy_team:
+		plan_intent(e)
 	current_turn_index = -1
 	calculate_turn_order()
 	is_battle_active = true
@@ -74,8 +76,10 @@ func next_turn():
 	if not current_actor.is_enemy:
 		actor.mp = mini(actor.max_mp, actor.mp + MP_REGEN)
 	var stunned = actor.has_status("aturdido")
-	for line in actor.tick_statuses():
-		ui.add_log(line)
+	var hp_before = actor.hp
+	actor.tick_statuses()
+	if actor.hp < hp_before:
+		ui.float_text(actor, "-%d" % (hp_before - actor.hp), Color(0.9, 0.2, 0.25))
 	ui.update_stats()
 	check_battle_end()
 	if not is_battle_active:
@@ -84,7 +88,10 @@ func next_turn():
 		next_turn()
 		return
 	if stunned:
-		ui.add_log("%s está aturdido y pierde el turno" % actor.character_name)
+		ui.float_text(actor, "¡Aturdido!", Color(1, 0.9, 0.35))
+		if current_actor.is_enemy:
+			plan_intent(actor)
+		ui.update_stats()
 		next_turn()
 		return
 
@@ -114,9 +121,6 @@ func player_attack(target_index: int):
 	Sfx.play(self, "hit")
 	ui.animate_attack(attacker, target)
 	ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
-	
-	ui.add_log("%s ataca a %s por %d daños!" % [attacker.character_name, target.character_name, actual_damage])
-	# Update UI stats after attack
 	if ui:
 		ui.update_stats()
 	
@@ -150,17 +154,15 @@ func enemy_turn():
 	var enemy = turn_order[current_turn_index].character
 	var target = player_team[0]
 	
-	var usable = enemy.skills.filter(func(sk): return sk.mp_cost <= enemy.mp)
-	if not usable.is_empty() and randf() < (0.5 if enemy.is_boss else 0.4):
-		var skill = usable.pick_random()
-		enemy.use_mp(skill.mp_cost)
+	var skill = enemy.intent_skill # lo que se mostró en pantalla es lo que ocurre
+	if skill and enemy.use_mp(skill.mp_cost):
 		_use_skill(enemy, skill, target)
 	else:
 		var actual_damage = target.take_damage(_power(enemy, enemy.attack))
 		Sfx.play(self, "hurt")
 		ui.animate_attack(enemy, target)
 		ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
-		ui.add_log("%s ataca a %s por %d daños!" % [enemy.character_name, target.character_name, actual_damage])
+	plan_intent(enemy)
 	# Update UI stats after enemy turn
 	if ui:
 		ui.update_stats()
@@ -169,10 +171,36 @@ func enemy_turn():
 	if is_battle_active:
 		next_turn()
 
+# Decide la próxima acción del enemigo (se muestra como intención hasta que le toque).
+func plan_intent(e: CharacterData) -> void:
+	var usable = e.skills.filter(func(sk): return sk.mp_cost <= e.mp)
+	e.intent_skill = usable.pick_random() if not usable.is_empty() and randf() < (0.5 if e.is_boss else 0.4) else null
+
+# Qué mostrar de la intención de `e`: {icons: [nombre...], value: daño previsto o 0}.
+func intent_info(e: CharacterData) -> Dictionary:
+	if e.has_status("aturdido"):
+		return {"icons": ["stun"], "value": 0}
+	var p = player_team[0]
+	var sk = e.intent_skill
+	if sk == null:
+		return {"icons": ["sword"], "value": p.preview_damage(_power(e, e.attack))}
+	return {"icons": Icons.skill_icons(sk), "value": sk.heal if sk.is_heal else (p.preview_damage(_power(e, sk.damage)) if sk.damage > 0 and not sk.on_self else 0)}
+
+# Daño total previsto sobre el jugador si todos los enemigos vivos ejecutan su intención.
+func incoming_damage() -> int:
+	var total = 0
+	for e in enemy_team:
+		if e.hp > 0 and not e.has_status("aturdido"):
+			var info = intent_info(e)
+			if "sword" in info.icons:
+				total += info.value
+	return total
+
 func _power(user: CharacterData, base: int) -> int:
 	return int(base * 1.5) if user.has_status("furia") else base
 
 func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
+	ui.float_text(user, skill.name, Color.WHITE)
 	Sfx.play(self, "heal" if skill.is_heal or skill.on_self else "skill")
 	if skill.is_heal or skill.on_self:
 		ui.flash(user, Color(0.4, 1, 0.5))
@@ -183,21 +211,15 @@ func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 	if skill.is_heal:
 		user.heal(skill.heal)
 		ui.float_text(user, "+%d" % skill.heal, Color(0.5, 1, 0.6))
-		ui.add_log("%s usa %s y recupera %d HP!" % [user.character_name, skill.name, skill.heal])
 		return
 	if skill.on_self:
 		user.add_status(skill.status, skill.status_turns)
-		ui.add_log("%s usa %s (%s)" % [user.character_name, skill.name, skill.status])
 		return
 	if skill.damage > 0:
 		var dmg = target.take_damage(_power(user, skill.damage))
 		ui.float_text(target, "-%d" % dmg, Color(1, 0.45, 0.45))
-		ui.add_log("%s usa %s en %s por %d daños!" % [user.character_name, skill.name, target.character_name, dmg])
-	else:
-		ui.add_log("%s usa %s en %s" % [user.character_name, skill.name, target.character_name])
 	if skill.status != "":
 		target.add_status(skill.status, skill.status_turns)
-		ui.add_log("%s sufre %s" % [target.character_name, skill.status])
 
 func check_battle_end():
 	if not is_battle_active:
@@ -275,7 +297,7 @@ func _on_item_selected(item: ItemData):
 	if item.mp_restore > 0:
 		ui.float_text(player_team[0], "+%d" % item.mp_restore, Color(0.5, 0.7, 1))
 	player_inventory.remove_item(item)
-	ui.add_log("%s usa %s" % [player_team[0].character_name, item.name])
+	ui.float_text(player_team[0], item.name, Color.WHITE)
 	ui.update_stats()
 	next_turn()
 

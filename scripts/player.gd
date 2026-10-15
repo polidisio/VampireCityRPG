@@ -35,7 +35,7 @@ func _physics_process(delta):
 		direction = input_direction.normalized()
 		velocity = direction * SPEED
 		if absf(direction.x) > 0.3:
-			sprite.flip_h = direction.x < 0 # el arte mira al frente: solo se voltea a izquierda/derecha
+			sprite.flip_h = direction.x > 0 # el arte de las clases mira a la izquierda: se voltea al ir a la derecha
 	else:
 		velocity = Vector2.ZERO
 	_animate(delta)

@@ -47,3 +47,11 @@ C. Assets/ambiente (HECHO: iconos de objetos, luz/oscuridad, arte propio de clas
 6. [x] Suelo por tramo de pisos (tile + tinte, cada 5 pisos)
 7. [x] Idle de NPCs, enemigos y sprites de combate; números de daño flotantes
 Aplazado: música de fondo.
+
+## Plan E: retratos de PNJ + combate con símbolos (estilo Slay the Spire)
+1. [x] Retratos: `npcs/<nombre>_face.png` (recorte de cabeza y torso) en diálogos (anciano, posadera) y tienda (mercader)
+2. [x] `Icons` (símbolos de 7x7 con contorno generados en código) + `Bar` (barra con número)
+3. [x] Intenciones: cada enemigo decide su próxima acción al acabar la anterior y la muestra sobre su sprite (icono + daño previsto, aturdido); el turno la ejecuta tal cual
+4. [x] Daño total que recibirás esta ronda sobre el jugador; barras HP/MP en vez de texto; estados como iconos con turnos
+5. [x] Quitar líneas de log redundantes (daño, habilidades): el nombre de la habilidad sale flotando; iconos en el menú de habilidades
+6. [x] Tests (intenciones coherentes con lo que ocurre) + capturas + sim_balance sin regresión

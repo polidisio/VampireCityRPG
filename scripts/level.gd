@@ -362,18 +362,21 @@ func _enemy_group() -> Array[CharacterData]:
 func _open_shop():
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
-	var menu = ShopMenu.new(player_inventory)
+	var menu = ShopMenu.new(player_inventory, _face("mercader"))
 	menu.closed.connect(func():
 		busy = false
 		player.process_mode = Node.PROCESS_MODE_INHERIT
 		_save())
 	add_child(menu)
 
-func _open_dialog(text: String, actions: Array = []):
+func _face(npc: String) -> Texture2D:
+	return load("res://assets/sprites/npcs/%s_face.png" % npc)
+
+func _open_dialog(text: String, actions: Array = [], face: Texture2D = null):
 	Sfx.play(self, "dialog")
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
-	var box = DialogBox.new(text, actions)
+	var box = DialogBox.new(text, actions, face)
 	box.closed.connect(func():
 		busy = false
 		player.process_mode = Node.PROCESS_MODE_INHERIT)
@@ -382,14 +385,14 @@ func _open_dialog(text: String, actions: Array = []):
 func _talk():
 	var q = quests.current()
 	if q.is_empty():
-		_open_dialog("Anciano: Has cumplido todos mis encargos, cazador. La torre es tuya.")
+		_open_dialog("Anciano: Has cumplido todos mis encargos, cazador. La torre es tuya.", [], _face("anciano"))
 		return
 	quests.counters["floor"] = max_floor
 	var item = ItemData.find_by_id(q.item)
 	var text = "Anciano: %s\nProgreso: %d/%d (%s)\nRecompensa: %d oro + %s" % [
 		q.title, mini(quests.counters[q.kind], q.goal), q.goal,
 		QuestLog.KIND_TEXT[q.kind], q.gold, item.name]
-	_open_dialog(text, [["Cobrar", _claim.bind(q)]] if quests.is_ready(q) else [])
+	_open_dialog(text, [["Cobrar", _claim.bind(q)]] if quests.is_ready(q) else [], _face("anciano"))
 
 func _claim(q: Dictionary):
 	Sfx.play(self, "coins")
@@ -405,10 +408,10 @@ func _rest():
 		c.hp = c.max_hp
 		c.mp = c.max_mp
 		Sfx.play(self, "heal")
-		msg.text = "Descansas. HP/MP al maximo (-10 oro)"
 		_save()
+		_open_dialog("Posadera: Descansa, cazador. Tienes HP y MP al máximo. (-10 oro)", [], _face("posadera"))
 	else:
-		msg.text = "No tienes oro suficiente"
+		_open_dialog("Posadera: Sin 10 monedas no hay cama, cazador.", [], _face("posadera"))
 
 func try_start_battle(enemy_node: Area2D):
 	if busy:

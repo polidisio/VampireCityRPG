@@ -8,8 +8,11 @@ var gold_label: Label
 var buy_list: VBoxContainer
 var sell_list: VBoxContainer
 
-func _init(inv: Inventory):
+var portrait: Texture2D
+
+func _init(inv: Inventory, face: Texture2D = null):
 	inventory = inv
+	portrait = face
 
 func _ready():
 	var panel = Panel.new()
@@ -18,6 +21,14 @@ func _ready():
 	gold_label = Label.new()
 	gold_label.position = Vector2(8, 4)
 	panel.add_child(gold_label)
+	if portrait:
+		var pic = TextureRect.new() # el mercader mira desde la esquina, sobre la lista de venta
+		pic.texture = portrait
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.position = Vector2(276, 0)
+		pic.size = Vector2(36, 36)
+		panel.add_child(pic)
 	buy_list = _column(panel, 8, "COMPRAR")
 	sell_list = _column(panel, 164, "VENDER (50%)")
 	var stock: Array[ItemData] = []

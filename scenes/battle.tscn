@@ -23,7 +23,7 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -150.0
-offset_top = -80.0
+offset_top = -74.0
 offset_right = 150.0
 offset_bottom = -10.0
 grow_horizontal = 2
@@ -35,21 +35,9 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
-offset_top = 10.0
+offset_top = 6.0
 offset_right = -10.0
 offset_bottom = -10.0
-
-[node name="PlayerHP" type="Label" parent="BattleUI/Panel/VBox"]
-layout_mode = 2
-text = "HP: 100/100"
-
-[node name="PlayerMP" type="Label" parent="BattleUI/Panel/VBox"]
-layout_mode = 2
-text = "MP: 50/50"
-
-[node name="EnemyHP" type="Label" parent="BattleUI/Panel/VBox"]
-layout_mode = 2
-text = "Enemy HP: 50/50"
 
 [node name="Menu" type="HBoxContainer" parent="BattleUI/Panel"]
 layout_mode = 1
