@@ -335,7 +335,7 @@ func _spawn_floor():
 		for r in HUB_SOLIDS:
 			_add_solid(r)
 		floor_label.text = "HUB - PISO MAX %d" % max_floor
-		_make_area(112, 28, Vector2(90, 135), _open_shop, "E: Tienda", load("res://assets/sprites/npcs/mercader_map.png"))
+		_make_area(112, 28, Vector2(90, 135), _say.bind("mercader"), "E: Tienda", load("res://assets/sprites/npcs/mercader_map.png"))
 		_make_area(99, 28, Vector2(230, 135), _say.bind("posadera"), "E: Descansar (10 oro)", load("res://assets/sprites/npcs/posadera_map.png"))
 		_make_area(86, 28, Vector2(160, 124), _say.bind("anciano"), "E: Hablar con el Anciano", load("res://assets/sprites/npcs/anciano_map.png"))
 		_make_area(45, 16, Vector2(160, 198), func(_a): _go_floor(max_floor)).get_child(0).visible = false # las escaleras ya están en el fondo
@@ -388,7 +388,7 @@ func _say(npc: String, node: String = "start"):
 		"hp": c.hp, "max_hp": c.max_hp, "gold": player_inventory.gold})
 	if v.is_empty():
 		return
-	var acts = {"quest": _talk, "rest": _rest}
+	var acts = {"quest": _talk, "rest": _rest, "shop": _open_shop}
 	var actions = []
 	for o in v.get("options", []):
 		actions.append([o.label, acts[o.do] if o.has("do") else _say.bind(npc, o.go)])

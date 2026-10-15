@@ -22,6 +22,14 @@ const NPCS = {
 				"options": [{"label": "Volver", "go": "start"}]},
 		],
 	},
+	"mercader": {
+		"start": [
+			{"when": {"min_floor": 10}, "text": "Mercader: Vienes con la ropa chamuscada, cazador. Buena señal: mira lo que tengo para ti.",
+				"options": [{"label": "Comprar / vender", "do": "shop"}]},
+			{"text": "Mercader: Pasa, pasa. Acero, pociones... y sin preguntas.",
+				"options": [{"label": "Comprar / vender", "do": "shop"}]},
+		],
+	},
 	"posadera": {
 		"start": [
 			{"when": {"no_gold": true}, "text": "Posadera: Sin monedas no hay cama, cazador. Vuelve con oro.",
