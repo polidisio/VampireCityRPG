@@ -16,6 +16,7 @@ var ui: Control
 var player_inventory: Inventory
 var floor_num: int = 1 # lo fija el nivel; condiciona los drops
 const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus turnos
+var gold_mult: float = 1.0 # Codicia (altar); lo fija el nivel
 var new_level: int = 0 # nivel alcanzado en el último combate ganado (0 = no subió)
 var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
@@ -237,6 +238,12 @@ func check_battle_end():
 		return # ya terminó: no emitir battle_ended dos veces
 	var all_dead = true
 	for p in player_team:
+		if p.hp <= 0 and p.revive_ready: # mejora meta Retorno
+			p.revive_ready = false
+			p.hp = maxi(1, p.max_hp / 2)
+			ui.float_text(p, "¡Revives!", Color(0.5, 1, 0.6))
+			ui.add_log("¡Retorno! Vuelves a levantarte")
+			ui.update_stats()
 		if p.hp > 0:
 			all_dead = false
 			break
@@ -273,7 +280,7 @@ func check_battle_end():
 			for drop in drops:
 				player_inventory.add_item(drop)
 				ui.add_log("¡Obtuviste: %s!" % drop.name)
-			var gold_drop = int(randi_range(5, 20) * (1.5 if pc.has_relic("bolsa") else 1.0))
+			var gold_drop = int(randi_range(5, 20) * (1.5 if pc.has_relic("bolsa") else 1.0) * gold_mult)
 			player_inventory.add_gold(gold_drop)
 			ui.add_log("¡Obtuviste: %d oro!" % gold_drop)
 		

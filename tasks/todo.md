@@ -71,7 +71,7 @@ Decisiones tomadas: progresión **por run** (nivel, habilidades elegidas y reliq
 5. [x] Oro persistente (también al morir, +10 por piso alcanzado); el mercader solo vende equipo básico (valor ≤ 60) y consumibles con mochila de 4; lo mejor cae en la torre.
 6. [x] Migración del guardado: hecha en G1 (los guardados antiguos cargan como run en curso).
 **G3 Altar (meta)**
-7. [ ] NPC Altar + ~12 mejoras con Esencia: +HP/+ataque base, +oro, +1 slot de objeto, empezar con una reliquia, revivir 1 vez por run, atajo al último jefe derrotado, desbloqueo de clases/habilidades/reliquias.
+7. [x] Altar en el hub (`AltarMenu`, `Meta`): Esencia (1 por enemigo, 5+2/piso por jefe, +10 por piso récord) y 10 mejoras: Vitalidad, Fuerza, Guardia, Celeridad, Mente, Codicia, Mochila, Iniciado, Herencia, Retorno. Pendiente: atajo de piso y desbloqueo de clases/habilidades/reliquias.
 **G4 Dificultad adaptable**
 8. [ ] Pactos voluntarios (más dificultad ⇒ más Esencia/oro) y ayuda suave tras varias muertes seguidas; `FLOOR_EASE` pasa a ser la base.
 **G5 Balance**

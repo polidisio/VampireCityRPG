@@ -2,8 +2,9 @@ class_name Inventory
 
 signal inventory_updated
 
-const MAX_CONSUMABLES = 4 # lo que se puede comprar y llevar al run (los botines no cuentan)
+const BASE_CONSUMABLES = 4 # lo que se puede comprar y llevar al run (los botines no cuentan); el altar lo amplía
 
+var max_consumables := BASE_CONSUMABLES
 var items: Array[ItemData] = []
 var gold: int = 0
 

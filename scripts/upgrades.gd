@@ -41,18 +41,18 @@ static func apply(c: CharacterData, o: Dictionary) -> void:
 	if o.id == "skill":
 		c.skills.append(o.skill)
 	else:
-		_add_stats(c, o.stats)
+		add_stats(c, o.stats)
 	c.hp = c.max_hp
 	c.mp = c.max_mp
 
 static func apply_relic(c: CharacterData, r: Dictionary) -> void:
 	c.relics.append(r.id)
-	_add_stats(c, r.get("stats", {}))
+	add_stats(c, r.get("stats", {}))
 
-static func _add_stats(c: CharacterData, stats: Dictionary) -> void:
+static func add_stats(c: CharacterData, stats: Dictionary, times := 1) -> void:
 	for k in stats:
-		c.set(k, c.get(k) + stats[k])
+		c.set(k, c.get(k) + stats[k] * times)
 		if k == "max_hp":
-			c.hp += stats[k]
+			c.hp += stats[k] * times
 		elif k == "max_mp":
-			c.mp += stats[k]
+			c.mp += stats[k] * times

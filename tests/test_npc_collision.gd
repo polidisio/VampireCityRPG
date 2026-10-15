@@ -8,7 +8,7 @@ func _init():
 	root.add_child(lvl)
 	await process_frame
 	var npcs = lvl.get_tree().get_nodes_in_group("floor_obj").filter(func(n): return n is Area2D and n.get_children().any(func(c): return c is Label))
-	assert(npcs.size() == 3, "3 NPCs con cartel")
+	assert(npcs.size() == 4, "4 NPCs con cartel")
 	for n in npcs:
 		assert(not n.get_children().filter(func(c): return c is Label)[0].visible, "cartel oculto al inicio")
 	assert(not lvl.nearby.is_valid())

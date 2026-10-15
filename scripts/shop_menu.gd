@@ -74,7 +74,7 @@ func _unhandled_input(event):
 		queue_free()
 
 func _buy(item: ItemData):
-	if item.type == ItemData.ItemType.CONSUMABLE and inventory.get_consumables().size() >= Inventory.MAX_CONSUMABLES:
+	if item.type == ItemData.ItemType.CONSUMABLE and inventory.get_consumables().size() >= inventory.max_consumables:
 		return # mochila llena (se ve en la cabecera)
 	if inventory.spend_gold(item.value):
 		Sfx.play(self, "coins")
@@ -88,7 +88,7 @@ func _sell(item: ItemData):
 	refresh()
 
 func refresh():
-	gold_label.text = "Oro %d  Mochila %d/%d  [Esc] salir" % [inventory.gold, inventory.get_consumables().size(), Inventory.MAX_CONSUMABLES]
+	gold_label.text = "Oro %d  Mochila %d/%d  [Esc] salir" % [inventory.gold, inventory.get_consumables().size(), inventory.max_consumables]
 	for n in sell_list.get_children():
 		n.queue_free()
 	for item in inventory.items:

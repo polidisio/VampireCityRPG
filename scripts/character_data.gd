@@ -19,6 +19,7 @@ var speed: int = 10
 
 var skills: Array = []
 var relics: Array = [] # ids de Upgrades.RELICS del run
+var revive_ready: bool = false # reliquia meta Retorno: revive una vez con la mitad de vida
 var pending_picks: int = 0 # mejoras de nivel sin elegir
 var sprite_tile: int = 100 # tile de assets/sprites
 var art_faces_right: bool = false # el sprite de mapa mira a la derecha (la mayoría mira a la izquierda); el jugador lo voltea según esto

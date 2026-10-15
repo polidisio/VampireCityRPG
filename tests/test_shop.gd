@@ -13,10 +13,10 @@ func _init():
 	root.add_child(shop)
 	await process_frame
 	var potion = ItemData.find_by_id("poción_pequeña")
-	for i in Inventory.MAX_CONSUMABLES + 3:
+	for i in inv.max_consumables + 3:
 		shop._buy(potion)
-	assert(inv.get_consumables().size() == Inventory.MAX_CONSUMABLES, "mochila limitada a %d" % Inventory.MAX_CONSUMABLES)
-	assert(inv.gold == 1000 - Inventory.MAX_CONSUMABLES * potion.value, "no cobra lo que no entra")
+	assert(inv.get_consumables().size() == inv.max_consumables, "mochila limitada a %d" % inv.max_consumables)
+	assert(inv.gold == 1000 - inv.max_consumables * potion.value, "no cobra lo que no entra")
 	var sword = ItemData.find_by_id("espada_corta")
 	shop._buy(sword)
 	assert(inv.items.has(sword) or inv.items.any(func(i): return i.id == "espada_corta"), "el equipo no cuenta para la mochila")

@@ -8,6 +8,10 @@ var player_inventory: Inventory
 var floor_num: int = 0 # 0 = hub
 var max_floor: int = 1
 var run_floor: int = 0 # piso más profundo del run en curso (0 = sin run); las escaleras del hub vuelven a él
+var meta := Meta.new()
+var run_essence: int = 0 # Esencia ganada en el run en curso (solo para el resumen)
+const ESSENCE_RECORD = 10 # por alcanzar un piso nuevo
+const BOSS_ESSENCE = 5 # por jefe, más 2 por piso; cada enemigo normal da 1
 signal chosen(option: Dictionary)
 var quests := QuestLog.new()
 var nearby: Callable
@@ -44,6 +48,8 @@ func _ready():
 		max_floor = saved[3]
 		quests = saved[4]
 		run_floor = saved[5]
+		meta = saved[6]
+	battle_system.gold_mult = meta.gold_mult()
 	if saved.is_empty() or saved[0] == null: # sin run: elegir clase empieza uno nuevo
 		_show_class_select()
 	else:
@@ -114,10 +120,13 @@ func _show_class_select():
 		var b = Button.new()
 		b.text = data.character_name.replace(" ", "\n")
 		b.pressed.connect(func():
+			meta.apply_to_run(data)
 			player.character_data = data
+			run_essence = 0
 			layer.queue_free()
 			busy = false
 			player.process_mode = Node.PROCESS_MODE_INHERIT
+			await _spend_picks("Mejora inicial (Iniciado). Elige una:") # solo si el altar la da
 			_save())
 		card.add_child(b)
 		row.add_child(card)
@@ -126,7 +135,7 @@ func _show_class_select():
 	add_child(layer)
 
 func _save():
-	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor, quests, run_floor)
+	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor, quests, run_floor, meta)
 
 func _unhandled_input(event):
 	if event.is_action_pressed("fullscreen"):
@@ -266,9 +275,14 @@ func _go_floor(n: int):
 	Sfx.play(self, "door")
 	_clear_floor()
 	floor_num = n
+	var record = n > max_floor
 	max_floor = maxi(max_floor, n)
 	run_floor = maxi(run_floor, n)
+	if record:
+		_gain_essence(ESSENCE_RECORD)
 	_spawn_floor()
+	if record:
+		_note("Piso récord: +%d Esencia" % ESSENCE_RECORD)
 	_save()
 
 func _add_block(r: Rect2, tex: Texture2D, tiled := true):
@@ -380,6 +394,7 @@ func _spawn_floor():
 		_make_area(112, 28, Vector2(90, 135), _say.bind("mercader"), "E: Tienda", load("res://assets/sprites/npcs/mercader_map.png"))
 		_make_area(99, 28, Vector2(230, 135), _say.bind("posadera"), "E: Descansar (10 oro)", load("res://assets/sprites/npcs/posadera_map.png"))
 		_make_area(86, 28, Vector2(160, 124), _say.bind("anciano"), "E: Hablar con el Anciano", load("res://assets/sprites/npcs/anciano_map.png"))
+		_make_area(60, 24, Vector2(48, 160), _open_altar, "E: Altar", load(CRYPT_ART + "prop_5.png")) # sarcófago de la cripta: ponytail, sin arte propio de altar
 		_make_area(45, 16, Vector2(160, 198), func(_a): _go_floor(maxi(1, run_floor))).get_child(0).visible = false # las escaleras ya están en el fondo
 		return
 	floor_label.text = "PISO %d  (H: hub)" % floor_num
@@ -440,11 +455,34 @@ func _pick_relic() -> void:
 	if not offers.is_empty():
 		Upgrades.apply_relic(player.character_data, await _choose("Reliquia del jefe. Elige una:", offers))
 
-func _spend_picks() -> void:
+func _spend_picks(title := "") -> void:
 	var c = player.character_data
 	while c.pending_picks > 0:
 		c.pending_picks -= 1
-		Upgrades.apply(c, await _choose("¡Nivel %d! Elige una mejora:" % (c.level - c.pending_picks), Upgrades.level_offers(c)))
+		Upgrades.apply(c, await _choose(title if title != "" else "¡Nivel %d! Elige una mejora:" % (c.level - c.pending_picks), Upgrades.level_offers(c)))
+
+# Aviso breve en el HUD (se borra solo si nada lo ha sustituido).
+func _note(text: String) -> void:
+	msg.text = text
+	get_tree().create_timer(3.0).timeout.connect(func():
+		if msg.text == text:
+			msg.text = "")
+
+func _gain_essence(n: int) -> void:
+	meta.essence += n
+	run_essence += n
+
+func _open_altar():
+	busy = true
+	player.process_mode = Node.PROCESS_MODE_DISABLED
+	var menu = AltarMenu.new(meta)
+	menu.closed.connect(func():
+		busy = false
+		player.process_mode = Node.PROCESS_MODE_INHERIT
+		battle_system.gold_mult = meta.gold_mult()
+		player_inventory.max_consumables = meta.max_consumables()
+		_save())
+	add_child(menu)
 
 func _say(npc: String, node: String = "start"):
 	var c = player.character_data
@@ -510,13 +548,16 @@ func _on_battle_ended(victory: bool):
 	_end_battle()
 	if victory:
 		quests.add("kill", battle_system.enemy_team.size())
+		var gain = battle_system.enemy_team.size() + (BOSS_ESSENCE + 2 * floor_num if current_enemy.has_meta("boss") else 0)
+		_gain_essence(gain)
+		_note("+%d Esencia" % gain)
 		if current_enemy.has_meta("boss"):
 			quests.add("boss")
 			# cerca del jefe pero a >=32px del jugador (está pegado al jefe) para no activar las escaleras al instante
 			var near = Rect2(current_enemy.position - Vector2(48, 48), Vector2(96, 96)).intersection(Rect2(32, 32, floor_size.x - 64, floor_size.y - 64))
 			var pos = _free_pos(near, player.position, 32.0)
 			_make_area(45, 16, pos, func(_a): _go_floor(floor_num + 1))
-			msg.text = "¡Jefe derrotado! Baja por las escaleras"
+			msg.text = "¡Jefe derrotado! Baja por las escaleras (+%d Esencia)" % gain
 		var boss = current_enemy.has_meta("boss")
 		current_enemy.queue_free()
 		if boss:
@@ -531,10 +572,10 @@ func _end_run() -> void:
 	var c = player.character_data
 	var bonus = RUN_END_GOLD * floor_num # consuelo: la muerte no deja con las manos vacías
 	player_inventory.add_gold(bonus)
-	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nBotín del superviviente: +%d oro.\nConservas %d de oro para preparar el siguiente run." % [floor_num, c.level, c.relics.size(), bonus, player_inventory.gold])
+	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nBotín del superviviente: +%d oro.\nEsencia del run: +%d (tienes %d). Gástala en el altar." % [floor_num, c.level, c.relics.size(), bonus, run_essence, meta.essence])
 	await box.closed
 	player_inventory.items.clear()
-	SaveGame.save(null, player_inventory, 0, max_floor, quests, 0)
+	SaveGame.save(null, player_inventory, 0, max_floor, quests, 0, meta)
 	get_tree().reload_current_scene()
 
 func _on_battle_fled():
