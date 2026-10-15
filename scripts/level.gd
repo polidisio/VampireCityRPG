@@ -18,9 +18,13 @@ var ground: TextureRect
 var cam: Camera2D
 var floor_label: Label
 var ambient: CanvasModulate
+# Suelo por tramo de 5 pisos: [tile, tinte]; se repite al acabar la lista.
+const FLOORS = [[0, Color.WHITE], [48, Color(0.5, 0.55, 0.75)], [53, Color(0.55, 0.8, 0.65)], [49, Color(0.75, 0.65, 1.0)], [13, Color(1.0, 0.8, 0.8)]]
+const HUB_FLOOR = [48, Color(0.5, 0.42, 0.46)]
 static var _glow_tex: GradientTexture2D
 
 func _ready():
+	Controls.setup()
 	battle_system.battle_ended.connect(_on_battle_ended)
 	battle_system.battle_fled.connect(_on_battle_fled)
 	var saved = SaveGame.load_game()
@@ -99,6 +103,8 @@ func _show_class_select():
 			_save())
 		card.add_child(b)
 		row.add_child(card)
+		if row.get_child_count() == 1:
+			b.grab_focus.call_deferred()
 	add_child(layer)
 
 func _save():
@@ -107,16 +113,28 @@ func _save():
 func _unhandled_input(event):
 	if busy:
 		return
-	if not (event is InputEventKey and event.pressed):
-		return
-	match event.keycode:
-		KEY_I: _open_inventory()
-		KEY_E:
-			if nearby.is_valid():
-				nearby.call()
-		KEY_H:
-			if floor_num > 0:
-				_go_floor(0)
+	if event.is_action_pressed("inventory"):
+		_open_inventory()
+	elif event.is_action_pressed("interact"):
+		if nearby.is_valid():
+			nearby.call()
+	elif event.is_action_pressed("hub"):
+		if floor_num > 0:
+			_go_floor(0)
+	elif event.is_action_pressed("pause"):
+		_open_pause()
+
+func _open_pause():
+	busy = true
+	player.process_mode = Node.PROCESS_MODE_DISABLED
+	var menu = PauseMenu.new()
+	menu.resumed.connect(func():
+		busy = false
+		player.process_mode = Node.PROCESS_MODE_INHERIT)
+	menu.to_title.connect(func():
+		_save()
+		get_tree().change_scene_to_file("res://scenes/title.tscn"))
+	add_child(menu)
 
 func _open_inventory():
 	busy = true
@@ -165,8 +183,13 @@ func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: 
 	else:
 		spr.texture = load("res://assets/sprites/tile_%04d.png" % tile)
 		spr.scale = Vector2.ONE * size / 16.0
-	if tile != 45: # las escaleras no llevan sombra
+	if tile != 45: # las escaleras no llevan sombra ni respiran
 		Shadow.attach(spr)
+		spr.tree_entered.connect(func():
+			var base = spr.offset.y
+			var tw = spr.create_tween().set_loops()
+			tw.tween_property(spr, "offset:y", base - 1.0, 0.5 + randf() * 0.4)
+			tw.tween_property(spr, "offset:y", base, 0.5 + randf() * 0.4))
 	var cs = CollisionShape2D.new()
 	cs.shape = RectangleShape2D.new()
 	cs.shape.size = Vector2.ONE * (size + 22 if hint != "" else size * 0.7)
@@ -289,6 +312,9 @@ func _spawn_floor():
 	player.position = start_pos
 	# más oscuro cuanto más alto el piso (mínimo para que se vea a los enemigos)
 	ambient.color = Color(0.62, 0.58, 0.78).lerp(Color(0.28, 0.25, 0.42), minf(floor_num, 10) / 10.0) if tower else Color(0.8, 0.72, 0.72)
+	var fl = FLOORS[((floor_num - 1) / 5) % FLOORS.size()] if tower else HUB_FLOOR
+	ground.texture = load("res://assets/sprites/tile_%04d.png" % fl[0])
+	ground.modulate = fl[1]
 	_build_walls()
 	if not tower:
 		floor_label.text = "HUB - PISO MAX %d" % max_floor
@@ -379,10 +405,12 @@ func try_start_battle(enemy_node: Area2D):
 	battle_system.start_battle(player.character_data, enemies, player_inventory)
 
 func _end_battle():
+	battle_system.ui.visible = false
 	busy = false
 	player.process_mode = Node.PROCESS_MODE_INHERIT
 
 func _on_battle_ended(victory: bool):
+	await get_tree().create_timer(1.3).timeout # deja leer el log final antes de cerrar el combate
 	_end_battle()
 	if victory:
 		quests.add("kill", battle_system.enemy_team.size())
@@ -395,6 +423,11 @@ func _on_battle_ended(victory: bool):
 			msg.text = "¡Jefe derrotado! Baja por las escaleras"
 		current_enemy.queue_free()
 		_save()
+		if battle_system.new_level > 0:
+			var lines = ["¡Subes a nivel %d!" % battle_system.new_level]
+			for sk in battle_system.new_skills:
+				lines.append("Nueva habilidad: %s (%d MP)\n  %s" % [sk.name, sk.mp_cost, sk.description])
+			_open_dialog("\n".join(lines))
 	else:
 		# ponytail: sin penalización, revive con HP/MP completos
 		var c = player.character_data

@@ -16,6 +16,8 @@ var ui: Control
 var player_inventory: Inventory
 var floor_num: int = 1 # lo fija el nivel; condiciona los drops
 const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus turnos
+var new_level: int = 0 # nivel alcanzado en el último combate ganado (0 = no subió)
+var new_skills: Array = [] # habilidades desbloqueadas en él
 var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
 func _ready():
@@ -33,6 +35,8 @@ func start_battle(player: CharacterData, enemies: Array[CharacterData], inventor
 	player_inventory = inventory
 	player_team = [player]
 	player.statuses.clear()
+	new_level = 0
+	new_skills = []
 	enemy_team = enemies
 	current_turn_index = -1
 	calculate_turn_order()
@@ -109,6 +113,7 @@ func player_attack(target_index: int):
 	var actual_damage = target.take_damage(_power(attacker, attacker.attack))
 	Sfx.play(self, "hit")
 	ui.animate_attack(attacker, target)
+	ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
 	
 	ui.add_log("%s ataca a %s por %d daños!" % [attacker.character_name, target.character_name, actual_damage])
 	# Update UI stats after attack
@@ -154,6 +159,7 @@ func enemy_turn():
 		var actual_damage = target.take_damage(_power(enemy, enemy.attack))
 		Sfx.play(self, "hurt")
 		ui.animate_attack(enemy, target)
+		ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
 		ui.add_log("%s ataca a %s por %d daños!" % [enemy.character_name, target.character_name, actual_damage])
 	# Update UI stats after enemy turn
 	if ui:
@@ -176,6 +182,7 @@ func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 		ui.flash(target, Color(0.7, 0.4, 1))
 	if skill.is_heal:
 		user.heal(skill.heal)
+		ui.float_text(user, "+%d" % skill.heal, Color(0.5, 1, 0.6))
 		ui.add_log("%s usa %s y recupera %d HP!" % [user.character_name, skill.name, skill.heal])
 		return
 	if skill.on_self:
@@ -184,6 +191,7 @@ func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 		return
 	if skill.damage > 0:
 		var dmg = target.take_damage(_power(user, skill.damage))
+		ui.float_text(target, "-%d" % dmg, Color(1, 0.45, 0.45))
 		ui.add_log("%s usa %s en %s por %d daños!" % [user.character_name, skill.name, target.character_name, dmg])
 	else:
 		ui.add_log("%s usa %s en %s" % [user.character_name, skill.name, target.character_name])
@@ -192,6 +200,8 @@ func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 		ui.add_log("%s sufre %s" % [target.character_name, skill.status])
 
 func check_battle_end():
+	if not is_battle_active:
+		return # ya terminó: no emitir battle_ended dos veces
 	var all_dead = true
 	for p in player_team:
 		if p.hp > 0:
@@ -216,8 +226,15 @@ func check_battle_end():
 		var exp_gained = 0
 		for e in enemy_team:
 			exp_gained += (10 + 15 * e.level) * (2 if e.is_boss else 1)
-		player_team[0].add_exp(exp_gained)
+		var pc = player_team[0]
+		var level_before = pc.level
+		var known = pc.skills.map(func(sk): return sk.name)
+		pc.add_exp(exp_gained)
 		ui.add_log("¡Victoria! +%d EXP" % exp_gained)
+		if pc.level > level_before:
+			new_level = pc.level
+			new_skills = pc.skills.filter(func(sk): return not known.has(sk.name))
+			ui.add_log("¡Nivel %d!%s" % [pc.level, " Nueva: " + ", ".join(new_skills.map(func(sk): return sk.name)) if not new_skills.is_empty() else ""])
 		Sfx.play(self, "victory")
 		
 		if player_inventory != null:
@@ -253,6 +270,10 @@ func _on_item_selected(item: ItemData):
 	if not (is_player_turn and is_battle_active):
 		return
 	player_team[0].use_item(item)
+	if item.hp_restore > 0:
+		ui.float_text(player_team[0], "+%d" % item.hp_restore, Color(0.5, 1, 0.6))
+	if item.mp_restore > 0:
+		ui.float_text(player_team[0], "+%d" % item.mp_restore, Color(0.5, 0.7, 1))
 	player_inventory.remove_item(item)
 	ui.add_log("%s usa %s" % [player_team[0].character_name, item.name])
 	ui.update_stats()

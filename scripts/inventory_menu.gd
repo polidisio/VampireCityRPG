@@ -29,7 +29,7 @@ func _ready():
 	refresh()
 
 func _unhandled_input(event):
-	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_I):
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("inventory"):
 		get_viewport().set_input_as_handled()
 		closed.emit()
 		queue_free()
@@ -43,6 +43,7 @@ func refresh():
 		eq.call("weapon"), eq.call("armor"), eq.call("accessory")]
 	for n in list.get_children():
 		n.queue_free()
+	var first: Button
 	for item in inventory.items:
 		var b = Button.new()
 		b.text = item.name
@@ -51,6 +52,9 @@ func refresh():
 		b.tooltip_text = item.description
 		b.pressed.connect(_on_item.bind(item))
 		list.add_child(b)
+		first = first if first else b
+	if first:
+		first.grab_focus.call_deferred()
 
 func _on_item(item: ItemData):
 	if item.type == ItemData.ItemType.CONSUMABLE:

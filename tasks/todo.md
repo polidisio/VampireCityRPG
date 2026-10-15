@@ -37,3 +37,13 @@ C. Assets/ambiente (HECHO: iconos de objetos, luz/oscuridad, arte propio de clas
 - Siguiente: Fase 2 (hub con tienda/descanso, torre por pisos, escaleras, jefe por piso, enemigos visibles en mapa, dificultad creciente).
 - Cuidado: abrir el proyecto en Godot con "Importar", nunca "Nuevo proyecto" (sobrescribe project.godot). Si cambias class_name nuevas, correr `Godot --headless --path . --import`.
 - Tests headless de apoyo: scripts SceneTree con `--script` (simulan combate, inventario, guardado).
+
+## Plan pulido D (hecho en una pasada; sin música)
+1. [x] Bug: la UI de combate no se ocultaba al acabar (ahora tras 1.3 s, para leer el log)
+2. [x] Entradas: acciones `interact/inventory/hub/pause` (teclado + mando), foco inicial en menús, estilo de foco visible
+3. [x] Pantalla de título (Continuar / Nueva partida con confirmación / Salir) como escena principal
+4. [x] Menú de pausa (Esc/Start): continuar, controles, menú principal (guarda)
+5. [x] Aviso al subir de nivel / aprender habilidad (diálogo tras el combate + log)
+6. [x] Suelo por tramo de pisos (tile + tinte, cada 5 pisos)
+7. [x] Idle de NPCs, enemigos y sprites de combate; números de daño flotantes
+Aplazado: música de fondo.

@@ -43,7 +43,7 @@ func _ready():
 	menu.move_child(ib, 2)
 	ib.pressed.connect(func(): item_pressed.emit())
 	log_label = Label.new()
-	log_label.position = Vector2(10, 6)
+	log_label.position = Vector2(96, 4) # a la derecha del jugador, que ocupa la izquierda
 	add_child(log_label)
 
 func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[CharacterData]):
@@ -66,6 +66,9 @@ func _make_sprite(c: CharacterData, pos: Vector2, scale_f: float, flip: bool = f
 	Shadow.attach(spr)
 	stage.add_child(spr)
 	sprites[c] = spr
+	var bob = spr.create_tween().set_loops() # respiración: offset (no position) para no chocar con la embestida
+	bob.tween_property(spr, "offset:y", -1.0, 0.5 + randf() * 0.3)
+	bob.tween_property(spr, "offset:y", 0.0, 0.5 + randf() * 0.3)
 	var lbl = Label.new()
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.size = Vector2(130, 10)
@@ -111,6 +114,25 @@ func flash(c: CharacterData, color: Color):
 		tw.tween_property(spr, "modulate", color, 0.08)
 		tw.tween_property(spr, "modulate", Color.WHITE, 0.2)
 
+# Número que sube y se desvanece sobre el sprite (varios a la vez se apilan un poco).
+func float_text(c: CharacterData, text: String, color: Color):
+	var spr = sprites.get(c)
+	if not spr:
+		return
+	var l = Label.new()
+	l.text = text
+	l.add_theme_color_override("font_color", color)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(60, 10)
+	var top = spr.position.y - spr.texture.get_height() / 2.0 * spr.scale.y
+	l.position = Vector2(spr.position.x - 30, top - 4)
+	l.z_index = 6
+	stage.add_child(l)
+	var tw = l.create_tween().set_parallel()
+	tw.tween_property(l, "position:y", l.position.y - 14, 0.8)
+	tw.tween_property(l, "modulate:a", 0.0, 0.8).set_delay(0.3)
+	tw.chain().tween_callback(l.queue_free)
+
 # Chispas pixel que saltan del objetivo (rojo = daño, verde = cura, violeta = estado).
 func _burst(pos: Vector2, color: Color):
 	var p = CPUParticles2D.new()
@@ -148,6 +170,7 @@ func show_player_menu():
 	skill_menu.get_parent().visible = false
 	$Panel/VBox.visible = true
 	menu.visible = true
+	menu.get_child(0).grab_focus.call_deferred()
 
 func show_skill_menu(skills: Array):
 	_show_list(skills.map(func(sk): return "%s (%d MP)" % [sk.name, sk.mp_cost]), func(i): skill_selected.emit(i))
@@ -158,8 +181,10 @@ func show_item_menu(items: Array):
 func _show_list(labels: Array, on_pick: Callable):
 	for c in skill_menu.get_children():
 		c.queue_free()
+	var first: Button
 	for i in labels.size():
 		var b = Button.new()
+		first = first if first else b
 		b.text = labels[i]
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(func():
@@ -175,6 +200,7 @@ func _show_list(labels: Array, on_pick: Callable):
 	menu.visible = false
 	$Panel/VBox.visible = false
 	skill_menu.get_parent().visible = true
+	(first if first else back).grab_focus.call_deferred()
 
 func add_log(text: String):
 	log_lines.append(text)

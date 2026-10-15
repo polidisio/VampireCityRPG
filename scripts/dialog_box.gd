@@ -26,6 +26,7 @@ func _ready():
 	for a in actions:
 		row.add_child(_button(a[0], a[1]))
 	row.add_child(_button("Cerrar [Esc]", Callable()))
+	row.get_child(0).grab_focus.call_deferred()
 
 func _button(label: String, on_press: Callable) -> Button:
 	var b = Button.new()

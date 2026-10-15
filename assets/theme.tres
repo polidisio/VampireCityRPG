@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=7 format=3]
+[gd_resource type="Theme" load_steps=6 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/KenneyMini.ttf" id="1_font"]
 
@@ -46,13 +46,11 @@ content_margin_top = 2.0
 content_margin_right = 4.0
 content_margin_bottom = 2.0
 
-[sub_resource type="StyleBoxEmpty" id="empty"]
-
 [resource]
 default_font = ExtResource("1_font")
 default_font_size = 8
 Button/styles/disabled = SubResource("btn")
-Button/styles/focus = SubResource("empty")
+Button/styles/focus = SubResource("btn_hover")
 Button/styles/hover = SubResource("btn_hover")
 Button/styles/normal = SubResource("btn")
 Button/styles/pressed = SubResource("btn_pressed")

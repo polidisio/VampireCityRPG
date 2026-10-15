@@ -33,6 +33,7 @@ func _ready():
 		b.tooltip_text = item.description
 		b.pressed.connect(_buy.bind(item))
 		buy_list.add_child(b)
+	buy_list.get_child(0).grab_focus.call_deferred()
 	refresh()
 
 func _column(panel: Panel, x: int, title: String) -> VBoxContainer:
