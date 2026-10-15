@@ -35,7 +35,8 @@ func _physics_process(delta):
 		direction = input_direction.normalized()
 		velocity = direction * SPEED
 		if absf(direction.x) > 0.3:
-			sprite.flip_h = direction.x > 0 # el arte de las clases mira a la izquierda: se voltea al ir a la derecha
+			var faces_right = character_data != null and character_data.art_faces_right
+			sprite.flip_h = (direction.x > 0) != faces_right # el arte suele mirar a la izquierda (se voltea al ir a la derecha); el de la Dhampir, al revés
 	else:
 		velocity = Vector2.ZERO
 	_animate(delta)

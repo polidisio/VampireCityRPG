@@ -21,6 +21,7 @@ var skills: Array = []
 var relics: Array = [] # ids de Upgrades.RELICS del run
 var pending_picks: int = 0 # mejoras de nivel sin elegir
 var sprite_tile: int = 100 # tile de assets/sprites
+var art_faces_right: bool = false # el sprite de mapa mira a la derecha (la mayoría mira a la izquierda); el jugador lo voltea según esto
 var art: String = "" # arte propio, ruta bajo assets/sprites/ sin extensión (classes/noble, enemies/bat): <art>.png combate, <art>_map.png mapa
 var is_boss: bool = false
 var intent_skill: SkillData = null # solo enemigos: habilidad que usará en su próximo turno (null = ataque básico)
@@ -75,6 +76,7 @@ static func create_dhamphir() -> CharacterData:
 	new_char.class_type = ClassType.DHAMPIR
 	new_char.sprite_tile = 88
 	new_char.art = "classes/dhampir"
+	new_char.art_faces_right = true # ballesta al frente a la derecha
 	new_char.max_hp = 90
 	new_char.hp = 90
 	new_char.max_mp = 45
