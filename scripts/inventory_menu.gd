@@ -43,6 +43,13 @@ func refresh():
 		eq.call("weapon"), eq.call("armor"), eq.call("accessory")]
 	for n in list.get_children():
 		n.queue_free()
+	for r in Upgrades.RELICS.filter(func(r): return c.has_relic(r.id)):
+		var l = Label.new() # reliquias del run: nombre y efecto
+		l.text = "* %s: %s" % [r.name, r.desc]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = 150
+		l.modulate = Color(1, 0.85, 0.4)
+		list.add_child(l)
 	var first: Button
 	for item in inventory.items:
 		var b = Button.new()
