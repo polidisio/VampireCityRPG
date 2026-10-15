@@ -2,6 +2,8 @@ class_name Inventory
 
 signal inventory_updated
 
+const MAX_CONSUMABLES = 4 # lo que se puede comprar y llevar al run (los botines no cuentan)
+
 var items: Array[ItemData] = []
 var gold: int = 0
 

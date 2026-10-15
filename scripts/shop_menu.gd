@@ -10,6 +10,17 @@ var sell_list: VBoxContainer
 
 var portrait: Texture2D
 
+const GEAR_MAX_VALUE = 60 # el mercader solo vende equipo básico: lo mejor se encuentra en la torre
+
+# Lo que vende: consumibles y equipo de partida.
+static func stock() -> Array[ItemData]:
+	var items: Array[ItemData] = []
+	items.append_array(ItemData.get_all_consumables())
+	for gear in ItemData.get_all_weapons() + ItemData.get_all_armors() + ItemData.get_all_accessories():
+		if gear.value <= GEAR_MAX_VALUE:
+			items.append(gear)
+	return items
+
 func _init(inv: Inventory, face: Texture2D = null):
 	inventory = inv
 	portrait = face
@@ -31,12 +42,7 @@ func _ready():
 		panel.add_child(pic)
 	buy_list = _column(panel, 8, "COMPRAR")
 	sell_list = _column(panel, 164, "VENDER (50%)")
-	var stock: Array[ItemData] = []
-	stock.append_array(ItemData.get_all_consumables())
-	stock.append_array(ItemData.get_all_weapons())
-	stock.append_array(ItemData.get_all_armors())
-	stock.append_array(ItemData.get_all_accessories())
-	for item in stock:
+	for item in stock():
 		var b = Button.new()
 		b.text = "%s %d" % [item.name, item.value]
 		b.icon = item.icon()
@@ -68,6 +74,8 @@ func _unhandled_input(event):
 		queue_free()
 
 func _buy(item: ItemData):
+	if item.type == ItemData.ItemType.CONSUMABLE and inventory.get_consumables().size() >= Inventory.MAX_CONSUMABLES:
+		return # mochila llena (se ve en la cabecera)
 	if inventory.spend_gold(item.value):
 		Sfx.play(self, "coins")
 		inventory.add_item(ItemData.find_by_id(item.id))
@@ -80,7 +88,7 @@ func _sell(item: ItemData):
 	refresh()
 
 func refresh():
-	gold_label.text = "Oro %d   [Esc] salir" % inventory.gold
+	gold_label.text = "Oro %d  Mochila %d/%d  [Esc] salir" % [inventory.gold, inventory.get_consumables().size(), Inventory.MAX_CONSUMABLES]
 	for n in sell_list.get_children():
 		n.queue_free()
 	for item in inventory.items:

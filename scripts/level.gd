@@ -22,6 +22,7 @@ var cam: Camera2D
 var floor_label: Label
 var ambient: CanvasModulate
 # Suelo por tramo de 5 pisos: [tile, tinte]; se repite al acabar la lista.
+const RUN_END_GOLD = 10 # oro por piso alcanzado al morir
 const CRYPT_ART = "res://assets/sprites/floor1/"
 const CRYPT_PROPS = 13
 const CRYPT_DECALS = 4
@@ -528,7 +529,9 @@ func _on_battle_ended(victory: bool):
 # La muerte cierra el run: se pierde la build (nivel, habilidades, reliquias, equipo y objetos); se conservan el oro y la meta.
 func _end_run() -> void:
 	var c = player.character_data
-	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nConservas %d de oro. Empieza un nuevo run." % [floor_num, c.level, c.relics.size(), player_inventory.gold])
+	var bonus = RUN_END_GOLD * floor_num # consuelo: la muerte no deja con las manos vacías
+	player_inventory.add_gold(bonus)
+	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nBotín del superviviente: +%d oro.\nConservas %d de oro para preparar el siguiente run." % [floor_num, c.level, c.relics.size(), bonus, player_inventory.gold])
 	await box.closed
 	player_inventory.items.clear()
 	SaveGame.save(null, player_inventory, 0, max_floor, quests, 0)

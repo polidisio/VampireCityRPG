@@ -68,8 +68,8 @@ Decisiones tomadas: progresión **por run** (nivel, habilidades elegidas y reliq
 3. [x] Reliquias: tras cada jefe, elegir 1 de 3 (~10 iniciales: sangrado+, curar al matar, daño con poca vida…) con ganchos en `battle_system` (al golpear, al matar, inicio de turno).
 4. [x] Muerte = fin de run: pantalla resumen (Esencia ganada), vuelta al hub, build reiniciada. Test de flujo.
 **G2 Economía y mercader**
-5. [ ] Oro persistente; el mercader vende preparación de run (consumibles limitados, equipo inicial) y deja de vender equipo permanente.
-6. [ ] Migrar el guardado actual (oro, piso máx., misiones) al formato nuevo.
+5. [x] Oro persistente (también al morir, +10 por piso alcanzado); el mercader solo vende equipo básico (valor ≤ 60) y consumibles con mochila de 4; lo mejor cae en la torre.
+6. [x] Migración del guardado: hecha en G1 (los guardados antiguos cargan como run en curso).
 **G3 Altar (meta)**
 7. [ ] NPC Altar + ~12 mejoras con Esencia: +HP/+ataque base, +oro, +1 slot de objeto, empezar con una reliquia, revivir 1 vez por run, atajo al último jefe derrotado, desbloqueo de clases/habilidades/reliquias.
 **G4 Dificultad adaptable**
