@@ -12,7 +12,8 @@ var nearby: Callable
 var msg: Label
 var current_enemy: Area2D
 var floor_size := Vector2(320, 180)
-var start_pos := Vector2(160, 100)
+var start_pos := Vector2(160, 160)
+var hub_bg: TextureRect
 var blocked: Array[Rect2] = [] # paredes/pilares del piso actual (para no spawnear encima)
 var ground: TextureRect
 var cam: Camera2D
@@ -20,7 +21,9 @@ var floor_label: Label
 var ambient: CanvasModulate
 # Suelo por tramo de 5 pisos: [tile, tinte]; se repite al acabar la lista.
 const FLOORS = [[0, Color.WHITE], [48, Color(0.5, 0.55, 0.75)], [53, Color(0.55, 0.8, 0.65)], [49, Color(0.75, 0.65, 1.0)], [13, Color(1.0, 0.8, 0.8)]]
-const HUB_FLOOR = [48, Color(0.5, 0.42, 0.46)]
+const HUB_ROOM = Rect2(0, 0, 320, 213) # fondo del hub (3:2; la cámara baja unos px con el jugador)
+# paredes, muebles y hueco de la escalera (abajo, x 150-171) según el fondo
+const HUB_SOLIDS = [Rect2(0, 0, 320, 104), Rect2(0, 0, 22, 213), Rect2(298, 0, 22, 213), Rect2(0, 185, 150, 28), Rect2(171, 185, 149, 28), Rect2(30, 100, 38, 12), Rect2(18, 104, 20, 24), Rect2(288, 118, 12, 30)]
 static var _glow_tex: GradientTexture2D
 
 func _ready():
@@ -44,6 +47,13 @@ func _ready():
 	ground.stretch_mode = TextureRect.STRETCH_TILE
 	add_child(ground)
 	move_child(ground, 1) # sobre Background, bajo todo lo demás
+	hub_bg = TextureRect.new()
+	hub_bg.texture = load("res://assets/sprites/hub.png")
+	hub_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hub_bg.position = HUB_ROOM.position
+	hub_bg.size = HUB_ROOM.size
+	add_child(hub_bg)
+	move_child(hub_bg, 2)
 	cam = Camera2D.new()
 	cam.limit_left = 0
 	cam.limit_top = 0
@@ -179,13 +189,15 @@ func _torch(parent: Node, radius: float) -> void:
 func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: String = "", tex: Texture2D = null) -> Area2D:
 	var a = Area2D.new()
 	var spr = Sprite2D.new()
+	if tile == 45 and not tex:
+		tex = load("res://assets/sprites/npcs/escaleras_map.png")
 	if tex: # arte propio (ya a escala de mapa): los pies quedan como los de un tile de 16
 		spr.texture = tex
 		spr.offset.y = -(tex.get_height() - 16) / 2.0
 	else:
 		spr.texture = load("res://assets/sprites/tile_%04d.png" % tile)
 		spr.scale = Vector2.ONE * size / 16.0
-	if tile != 45: # las escaleras no llevan sombra ni respiran
+	if tile != 45 and not (tex and hint != ""): # las escaleras no llevan sombra ni respiran; el arte de los PNJ ya trae la suya
 		Shadow.attach(spr)
 		spr.tree_entered.connect(func():
 			var base = spr.offset.y
@@ -280,8 +292,6 @@ func _build_walls():
 	var h = floor_size.y
 	for r in [Rect2(0, 0, w, 16), Rect2(0, h - 16, w, 16), Rect2(0, 16, 16, h - 32), Rect2(w - 16, 16, 16, h - 32)]:
 		_add_block(r, 57)
-	if floor_num == 0:
-		return
 	# ponytail: obstáculos aleatorios con separación mínima, así nunca bloquean el paso
 	for i in 3:
 		var seg = randi_range(5, 8) * 16
@@ -305,25 +315,30 @@ func _free_pos(area: Rect2, avoid: Vector2 = start_pos, min_dist: float = 100.0)
 func _spawn_floor():
 	blocked.clear()
 	var tower = floor_num > 0
-	floor_size = Vector2(640, 360) if tower else Vector2(320, 180)
-	start_pos = Vector2(48, 180) if tower else Vector2(160, 100)
+	floor_size = Vector2(640, 360) if tower else Vector2(320, 213)
+	start_pos = Vector2(48, 180) if tower else Vector2(160, 160)
+	ground.visible = tower
+	hub_bg.visible = not tower
 	ground.size = floor_size
 	$Background.size = floor_size
 	cam.limit_right = int(floor_size.x)
 	cam.limit_bottom = int(floor_size.y)
 	player.position = start_pos
 	# más oscuro cuanto más alto el piso (mínimo para que se vea a los enemigos)
-	ambient.color = Color(0.62, 0.58, 0.78).lerp(Color(0.28, 0.25, 0.42), minf(floor_num, 10) / 10.0) if tower else Color(0.8, 0.72, 0.72)
-	var fl = FLOORS[((floor_num - 1) / 5) % FLOORS.size()] if tower else HUB_FLOOR
+	ambient.color = Color(0.62, 0.58, 0.78).lerp(Color(0.28, 0.25, 0.42), minf(floor_num, 10) / 10.0) if tower else Color(0.9, 0.86, 1.0)
+	var fl = FLOORS[((floor_num - 1) / 5) % FLOORS.size()] if tower else FLOORS[0]
 	ground.texture = load("res://assets/sprites/tile_%04d.png" % fl[0])
 	ground.modulate = fl[1]
-	_build_walls()
+	if tower:
+		_build_walls()
 	if not tower:
+		for r in HUB_SOLIDS:
+			_add_solid(r)
 		floor_label.text = "HUB - PISO MAX %d" % max_floor
-		_make_area(112, 16, Vector2(80, 70), _open_shop, "E: Tienda")
-		_make_area(99, 16, Vector2(240, 70), _rest, "E: Descansar (10 oro)")
-		_make_area(86, 16, Vector2(160, 40), _talk, "E: Hablar con el Anciano")
-		_make_area(45, 16, Vector2(160, 150), func(_a): _go_floor(max_floor))
+		_make_area(112, 28, Vector2(90, 135), _open_shop, "E: Tienda", load("res://assets/sprites/npcs/mercader_map.png"))
+		_make_area(99, 28, Vector2(230, 135), _rest, "E: Descansar (10 oro)", load("res://assets/sprites/npcs/posadera_map.png"))
+		_make_area(86, 28, Vector2(160, 124), _talk, "E: Hablar con el Anciano", load("res://assets/sprites/npcs/anciano_map.png"))
+		_make_area(45, 16, Vector2(160, 198), func(_a): _go_floor(max_floor)).get_child(0).visible = false # las escaleras ya están en el fondo
 		return
 	floor_label.text = "PISO %d  (H: hub)" % floor_num
 	var w = floor_size.x

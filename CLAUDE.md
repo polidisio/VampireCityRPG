@@ -42,7 +42,7 @@ VampireCityRPG/
 
 ### Display
 - Viewport: 320x180 (pixel art style)
-- Stretch mode: viewport
+- Stretch mode: canvas_items (texto y arte a resolución de ventana, sin pixelado; tiles con filtro nearest explícito). Fuente: Jersey 10 (OFL)
 - Renderer: GL Compatibility
 
 ### Features

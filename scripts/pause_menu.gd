@@ -15,7 +15,8 @@ func _ready():
 	panel.add_child(title)
 	var help = Label.new()
 	help.text = Controls.HELP
-	help.position = Vector2(40, 100)
+	help.position = Vector2(40, 92)
+	help.add_theme_constant_override("line_spacing", -3)
 	help.visible = false
 	panel.add_child(help)
 	var box = VBoxContainer.new()

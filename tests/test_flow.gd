@@ -74,7 +74,10 @@ func run():
 	for f in [0, 1, 6, 11, 16, 21, 26]:
 		lvl._go_floor(f)
 		tex[f] = [lvl.ground.texture.resource_path, lvl.ground.modulate]
-	if tex[1] == tex[6] or tex[6] == tex[11] or tex[1] != tex[26] or tex[0] == tex[1]:
+	if tex[1] == tex[6] or tex[6] == tex[11] or tex[1] != tex[26] or lvl.hub_bg.visible: # el hub usa su fondo propio (hub_bg), no suelo en mosaico
+		return fail("suelos por tramo: " + str(tex))
+	lvl._go_floor(0)
+	if not lvl.hub_bg.visible or lvl.ground.visible:
 		return fail("suelos por tramo: " + str(tex))
 	# combate: sube de nivel, avisa y se oculta
 	lvl._go_floor(1)
