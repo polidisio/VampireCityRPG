@@ -106,9 +106,30 @@ func animate_attack(attacker: CharacterData, target: CharacterData):
 func flash(c: CharacterData, color: Color):
 	var spr = sprites.get(c)
 	if spr:
+		_burst(spr.position, color)
 		var tw = spr.create_tween()
 		tw.tween_property(spr, "modulate", color, 0.08)
 		tw.tween_property(spr, "modulate", Color.WHITE, 0.2)
+
+# Chispas pixel que saltan del objetivo (rojo = daño, verde = cura, violeta = estado).
+func _burst(pos: Vector2, color: Color):
+	var p = CPUParticles2D.new()
+	p.position = pos
+	p.one_shot = true
+	p.emitting = true
+	p.amount = 14
+	p.lifetime = 0.45
+	p.explosiveness = 1.0
+	p.spread = 180.0
+	p.initial_velocity_min = 40.0
+	p.initial_velocity_max = 90.0
+	p.gravity = Vector2(0, 160)
+	p.scale_amount_min = 1.5
+	p.scale_amount_max = 3.0
+	p.color = color.lightened(0.2)
+	p.z_index = 5
+	p.finished.connect(p.queue_free)
+	stage.add_child(p)
 
 func update_stats():
 	if player_char:

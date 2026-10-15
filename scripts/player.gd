@@ -9,7 +9,6 @@ var character_data: CharacterData:
 
 @onready var sprite = $Sprite2D
 @onready var collision = $CollisionShape2D
-@onready var animation_player = $AnimationPlayer
 
 var direction: Vector2 = Vector2.DOWN
 
@@ -24,7 +23,7 @@ func update_sprite():
 	sprite.offset.y = -(sprite.texture.get_height() - 16) / 2.0 # los pies quedan donde los de un tile de 16
 	Shadow.fit(sprite)
 
-func _physics_process(_delta):
+func _physics_process(delta):
 	var input_direction = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	# WASD fallback
 	if input_direction == Vector2.ZERO:
@@ -35,12 +34,22 @@ func _physics_process(_delta):
 	if input_direction != Vector2.ZERO:
 		direction = input_direction.normalized()
 		velocity = direction * SPEED
-		animation_player.play("walk")
+		if absf(direction.x) > 0.3:
+			sprite.flip_h = direction.x < 0 # el arte mira al frente: solo se voltea a izquierda/derecha
 	else:
 		velocity = Vector2.ZERO
-		animation_player.play("idle")
-	
+	_animate(delta)
 	move_and_slide()
+
+# Animación por código (sin hojas de sprites): saltito al andar, respiración en reposo.
+# El sprite sube y la sombra se queda en el suelo. ponytail: sin frames de andar; si hay arte animado, usar AnimationPlayer.
+var _t := 0.0
+func _animate(delta: float) -> void:
+	_t += delta
+	var hop = absf(sin(_t * 14.0)) * 2.0 if velocity != Vector2.ZERO else (1.0 if fmod(_t, 1.4) < 0.7 else 0.0)
+	sprite.position.y = -3.0 - roundf(hop)
+	if sprite.has_node("Shadow"):
+		sprite.get_node("Shadow").position.y = sprite.texture.get_height() / 2.0 + sprite.offset.y - 1.0 + roundf(hop)
 
 func get_input_direction() -> Vector2:
 	return direction
