@@ -74,7 +74,9 @@ func run():
 	for f in [0, 1, 6, 11, 16, 21, 26]:
 		lvl._go_floor(f)
 		tex[f] = [lvl.ground.texture.resource_path, lvl.ground.modulate]
-	if tex[1] == tex[6] or tex[6] == tex[11] or tex[1] != tex[26] or lvl.hub_bg.visible: # el hub usa su fondo propio (hub_bg), no suelo en mosaico
+	# pisos 1-5 y 26-30 usan la cripta (ground_a o b al azar); el hub usa su fondo propio (hub_bg), no suelo en mosaico
+	var crypt = tex[1][0].contains("floor1") and tex[26][0].contains("floor1")
+	if tex[1] == tex[6] or tex[6] == tex[11] or not crypt or lvl.hub_bg.visible:
 		return fail("suelos por tramo: " + str(tex))
 	lvl._go_floor(0)
 	if not lvl.hub_bg.visible or lvl.ground.visible:

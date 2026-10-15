@@ -20,6 +20,9 @@ var cam: Camera2D
 var floor_label: Label
 var ambient: CanvasModulate
 # Suelo por tramo de 5 pisos: [tile, tinte]; se repite al acabar la lista.
+const CRYPT_ART = "res://assets/sprites/floor1/"
+const CRYPT_PROPS = 13
+const CRYPT_DECALS = 4
 const FLOORS = [[0, Color.WHITE], [48, Color(0.5, 0.55, 0.75)], [53, Color(0.55, 0.8, 0.65)], [49, Color(0.75, 0.65, 1.0)], [13, Color(1.0, 0.8, 0.8)]]
 const HUB_ROOM = Rect2(0, 0, 320, 213) # fondo del hub (3:2; la cámara baja unos px con el jugador)
 # paredes, muebles y hueco de la escalera (abajo, x 150-171) según el fondo
@@ -262,7 +265,7 @@ func _go_floor(n: int):
 	_spawn_floor()
 	_save()
 
-func _add_block(r: Rect2, tile: int):
+func _add_block(r: Rect2, tex: Texture2D, tiled := true):
 	var b = StaticBody2D.new()
 	b.position = r.position
 	var cs = CollisionShape2D.new()
@@ -270,11 +273,15 @@ func _add_block(r: Rect2, tile: int):
 	cs.shape.size = r.size
 	cs.position = r.size / 2
 	var t = TextureRect.new()
-	t.texture = load("res://assets/sprites/tile_%04d.png" % tile)
+	t.texture = tex
 	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	t.stretch_mode = TextureRect.STRETCH_TILE
-	t.size = r.size
+	if tiled:
+		t.stretch_mode = TextureRect.STRETCH_TILE
+		t.size = r.size
+	else: # prop: sprite a su tamaño, apoyado en la base del bloque de colisión y centrado
+		t.size = tex.get_size()
+		t.position = Vector2((r.size.x - t.size.x) / 2, r.size.y - t.size.y)
 	b.add_child(t)
 	b.add_child(cs)
 	b.add_to_group("floor_obj")
@@ -291,18 +298,43 @@ func _build_walls():
 	var w = floor_size.x
 	var h = floor_size.y
 	for r in [Rect2(0, 0, w, 16), Rect2(0, h - 16, w, 16), Rect2(0, 16, 16, h - 32), Rect2(w - 16, 16, 16, h - 32)]:
-		_add_block(r, 57)
+		_add_block(r, _wall_tex(r))
 	# ponytail: obstáculos aleatorios con separación mínima, así nunca bloquean el paso
 	for i in 3:
 		var seg = randi_range(5, 8) * 16
 		var size = Vector2(seg, 16) if randf() < 0.5 else Vector2(16, seg)
 		var r = Rect2(Vector2(randi_range(3, int(w / 16) - 4), randi_range(3, int(h / 16) - 4)) * 16, size)
 		if _placeable(r):
-			_add_block(r, 57)
+			_add_block(r, _wall_tex(r))
 	for i in 40:
 		var r = Rect2(Vector2(randi_range(3, int(w / 16) - 4), randi_range(3, int(h / 16) - 4)) * 16, Vector2(16, 16))
 		if _placeable(r):
-			_add_block(r, [64, 65, 82].pick_random())
+			if _crypt():
+				_add_block(r, load(CRYPT_ART + "prop_%d.png" % randi_range(0, CRYPT_PROPS - 1)), false)
+			else:
+				_add_block(r, load("res://assets/sprites/tile_%04d.png" % [64, 65, 82].pick_random()))
+	if _crypt():
+		_scatter_decals()
+
+# Pisos 1-5: arte de cripta (tools/make_floor1.py). El resto sigue con los tiles Kenney.
+func _crypt() -> bool:
+	return floor_num > 0 and ((floor_num - 1) / 5) % FLOORS.size() == 0
+
+func _wall_tex(r: Rect2) -> Texture2D:
+	if _crypt():
+		return load(CRYPT_ART + ("wall_cap.png" if r.size.x > r.size.y else "wall_brick.png"))
+	return load("res://assets/sprites/tile_0057.png")
+
+# Manchas y huesos sobre el suelo (sin colisión, bajo jugador y enemigos).
+func _scatter_decals():
+	for i in 10:
+		var d = TextureRect.new()
+		d.texture = load(CRYPT_ART + "decal_%d.png" % randi_range(0, CRYPT_DECALS - 1))
+		d.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		d.position = Vector2(randf_range(24, floor_size.x - 24 - d.texture.get_width()), randf_range(24, floor_size.y - 24 - d.texture.get_height()))
+		d.add_to_group("floor_obj")
+		add_child(d)
+		move_child(d, 3)
 
 func _free_pos(area: Rect2, avoid: Vector2 = start_pos, min_dist: float = 100.0) -> Vector2:
 	var p = area.get_center()
@@ -327,8 +359,12 @@ func _spawn_floor():
 	# más oscuro cuanto más alto el piso (mínimo para que se vea a los enemigos)
 	ambient.color = Color(0.62, 0.58, 0.78).lerp(Color(0.28, 0.25, 0.42), minf(floor_num, 10) / 10.0) if tower else Color(0.9, 0.86, 1.0)
 	var fl = FLOORS[((floor_num - 1) / 5) % FLOORS.size()] if tower else FLOORS[0]
-	ground.texture = load("res://assets/sprites/tile_%04d.png" % fl[0])
-	ground.modulate = fl[1]
+	if _crypt():
+		ground.texture = load(CRYPT_ART + ["ground_a.png", "ground_b.png"].pick_random())
+		ground.modulate = Color.WHITE
+	else:
+		ground.texture = load("res://assets/sprites/tile_%04d.png" % fl[0])
+		ground.modulate = fl[1]
 	if tower:
 		_build_walls()
 	if not tower:
