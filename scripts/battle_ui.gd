@@ -213,7 +213,7 @@ func update_stats():
 	if player_char:
 		player_hp_bar.set_value(player_char.hp, player_char.max_hp)
 		player_mp_bar.set_value(player_char.mp, player_char.max_mp)
-		var dmg = system.incoming_damage() if system.is_battle_active else 0
+		var dmg = system.incoming_damage() if system.is_battle_active and system.incoming_count() > 1 else 0 # con 1 atacante repetiría su intención
 		_clear_row(incoming_row)
 		if dmg > 0:
 			_add_icon(incoming_row, "sword")
@@ -245,8 +245,9 @@ func _show_info(v: bool) -> void:
 	$Panel/VBox.visible = v
 	log_label.visible = v
 
-func show_target_menu(targets: Array, on_pick: Callable):
-	_show_list(targets.map(func(t): return "%s %d/%d" % [t.character_name, t.hp, t.max_hp]), on_pick, [], func(i): _highlight(targets[i]))
+func show_target_menu(targets: Array, on_pick: Callable, base: int = 0):
+	var system: BattleSystem = get_parent()
+	_show_list(targets.map(func(t): return "%s %d/%d%s" % [t.character_name, t.hp, t.max_hp, "  -%d" % system.damage_vs(t, base) if base > 0 else ""]), on_pick, [], func(i): _highlight(targets[i]))
 	_highlight(targets[0]) # el primer botón ya tiene el foco
 
 # Aclara el sprite del enemigo elegido (null: ninguno). Solo toca el color, no el alfa del desvanecido.
@@ -258,6 +259,9 @@ func _highlight(target) -> void:
 			spr.modulate = Color(v, v, v, spr.modulate.a)
 
 func show_player_menu():
+	var system: BattleSystem = get_parent()
+	var t = system.single_target()
+	$Panel/Menu/AttackBtn.text = "Atacar -%d" % system.damage_vs(t, player_char.attack) if t else "Atacar" # el daño que harás
 	_highlight(null)
 	skill_menu.get_parent().visible = false
 	_show_info(true)
@@ -265,7 +269,9 @@ func show_player_menu():
 	menu.get_child(0).grab_focus.call_deferred()
 
 func show_skill_menu(skills: Array):
-	_show_list(skills.map(func(sk): return "%s (%d MP)" % [sk.name, sk.mp_cost]), func(i): skill_selected.emit(i), skills.map(func(sk): return Icons.tex(Icons.skill_icons(sk)[0])))
+	var system: BattleSystem = get_parent()
+	var t = system.single_target()
+	_show_list(skills.map(func(sk): return "%s (%d MP)%s" % [sk.name, sk.mp_cost, "  -%d" % system.damage_vs(t, sk.damage) if t and sk.damage > 0 and not sk.on_self and not sk.is_heal else ""]), func(i): skill_selected.emit(i), skills.map(func(sk): return Icons.tex(Icons.skill_icons(sk)[0])))
 
 func show_item_menu(items: Array):
 	_show_list(items.map(func(it): return it.name), func(i): item_selected.emit(items[i]))

@@ -189,6 +189,10 @@ func intent_info(e: CharacterData) -> Dictionary:
 		return {"icons": ["sword"], "value": p.preview_damage(_power(e, e.attack))}
 	return {"icons": Icons.skill_icons(sk), "value": sk.heal if sk.is_heal else (p.preview_damage(_power(e, sk.damage)) if sk.damage > 0 and not sk.on_self else 0)}
 
+# Cuántos enemigos vivos atacarán con daño (si es 1, el total sería idéntico a su propia intención).
+func incoming_count() -> int:
+	return enemy_team.filter(func(e): return e.hp > 0 and not e.has_status("aturdido") and "sword" in intent_info(e).icons).size()
+
 # Daño total previsto sobre el jugador si todos los enemigos vivos ejecutan su intención.
 func incoming_damage() -> int:
 	var total = 0
@@ -289,10 +293,19 @@ func check_battle_end():
 func _on_attack_pressed():
 	if is_player_turn and is_battle_active:
 		ui.menu.visible = false
-		_pick_target(player_attack)
+		_pick_target(player_attack, player_team[0].attack)
 
-# Con varios enemigos vivos el jugador elige a quién golpear; con uno solo no pregunta.
-func _pick_target(on_pick: Callable):
+# Daño que haría el jugador con una acción de poder `base` sobre `target` (defensa y estados incluidos).
+func damage_vs(target: CharacterData, base: int) -> int:
+	return target.preview_damage(_power(player_team[0], base))
+
+# El único enemigo vivo, o null si hay varios (entonces el daño se ve al elegir objetivo).
+func single_target() -> CharacterData:
+	var alive = enemy_team.filter(func(e): return e.hp > 0)
+	return alive[0] if alive.size() == 1 else null
+
+# Con varios enemigos vivos el jugador elige a quién golpear (viendo el daño sobre cada uno); con uno solo no pregunta.
+func _pick_target(on_pick: Callable, base: int):
 	var alive: Array[int] = []
 	for i in enemy_team.size():
 		if enemy_team[i].hp > 0:
@@ -300,7 +313,7 @@ func _pick_target(on_pick: Callable):
 	if alive.size() <= 1:
 		on_pick.call(first_alive_enemy())
 		return
-	ui.show_target_menu(alive.map(func(i): return enemy_team[i]), func(k): on_pick.call(alive[k]))
+	ui.show_target_menu(alive.map(func(i): return enemy_team[i]), func(k): on_pick.call(alive[k]), base)
 
 func _on_skill_pressed():
 	if is_player_turn and is_battle_active:
@@ -336,7 +349,7 @@ func _on_skill_selected(index: int):
 	if skill.is_heal or skill.on_self: # no apuntan a un enemigo
 		player_use_skill(index, first_alive_enemy())
 	else:
-		_pick_target(func(t): player_use_skill(index, t))
+		_pick_target(func(t): player_use_skill(index, t), skill.damage)
 
 func _on_run_pressed():
 	if is_player_turn and is_battle_active:
