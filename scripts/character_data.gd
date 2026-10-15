@@ -319,13 +319,14 @@ static func create_ghoul() -> CharacterData:
 	return _enemy("Cíclope Ghoul", 109, 4, 140, 17, 9, 6,
 		[SkillData.create("Golpe Demoledor", "Daño alto", 26, 0, 0)])
 
-const FLOOR1_EASE = 0.7 # el piso 1 lo juega un personaje sin mejoras: enemigos y jefe con -30% de vida y ataque
+# Rampa de dificultad de los pisos 1-5: multiplicador de vida y ataque de enemigos y jefe (el piso 1 lo juega un personaje sin mejoras).
+const FLOOR_EASE = {1: 0.7, 2: 0.75, 3: 0.8, 4: 0.85, 5: 0.9}
 
 # a partir del piso 5 la dificultad base se estanca: escalan los stats (+12% por piso)
 static func _scale_for_floor(e: CharacterData, floor_num: int) -> void:
 	var m = 1.0
-	if floor_num == 1:
-		m = FLOOR1_EASE
+	if FLOOR_EASE.has(floor_num):
+		m = FLOOR_EASE[floor_num]
 	elif floor_num > 5:
 		m = 1.0 + 0.12 * (floor_num - 5)
 	if m != 1.0:
@@ -377,7 +378,7 @@ static func get_enemy_count_for_difficulty(difficulty: int) -> int:
 	match difficulty:
 		1: return 1
 		2: return randi_range(1, 2)
-		3: return randi_range(2, 3)
-		4: return randi_range(2, 4)
-		5: return randi_range(3, 5)
+		3: return randi_range(1, 3)
+		4: return randi_range(2, 3)
+		5: return randi_range(2, 4)
 		_: return 1
