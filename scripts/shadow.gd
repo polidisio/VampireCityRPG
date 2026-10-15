@@ -17,7 +17,13 @@ static func attach(spr: Sprite2D) -> void:
 	s.texture = _tex
 	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	s.show_behind_parent = true
-	var size = spr.texture.get_size() if spr.texture else Vector2(16, 16)
-	s.position = Vector2(0, size.y / 2.0 - 1.0)
-	s.scale = Vector2(maxf(1.0, size.x / 16.0 * 0.8), 1.0)
+	s.name = "Shadow"
 	spr.add_child(s)
+	fit(spr)
+
+# Coloca/ajusta la sombra a los pies y al ancho del sprite (se llama de nuevo si cambia la textura).
+static func fit(spr: Sprite2D) -> void:
+	var s = spr.get_node("Shadow")
+	var size = spr.texture.get_size() if spr.texture else Vector2(16, 16)
+	s.position = Vector2(0, size.y / 2.0 + spr.offset.y - 1.0)
+	s.scale = Vector2(maxf(1.0, size.x / 16.0 * 0.8), 1.0)

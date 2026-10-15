@@ -123,11 +123,15 @@ func _open_inventory():
 		_save())
 	add_child(menu)
 
-func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: String = "") -> Area2D:
+func _make_area(tile: int, size: float, pos: Vector2, on_enter: Callable, hint: String = "", tex: Texture2D = null) -> Area2D:
 	var a = Area2D.new()
 	var spr = Sprite2D.new()
-	spr.texture = load("res://assets/sprites/tile_%04d.png" % tile)
-	spr.scale = Vector2.ONE * size / 16.0
+	if tex: # arte propio (ya a escala de mapa): los pies quedan como los de un tile de 16
+		spr.texture = tex
+		spr.offset.y = -(tex.get_height() - 16) / 2.0
+	else:
+		spr.texture = load("res://assets/sprites/tile_%04d.png" % tile)
+		spr.scale = Vector2.ONE * size / 16.0
 	if tile != 45: # las escaleras no llevan sombra
 		Shadow.attach(spr)
 	var cs = CollisionShape2D.new()
@@ -261,9 +265,9 @@ func _spawn_floor():
 	var h = floor_size.y
 	for n in randi_range(4, 7):
 		var group = _enemy_group()
-		_make_area(group[0].sprite_tile, 14, _free_pos(Rect2(120, 32, w - 152, h - 64)), try_start_battle).set_meta("enemies", group)
+		_make_area(group[0].sprite_tile, 20, _free_pos(Rect2(120, 32, w - 152, h - 64)), try_start_battle, "", group[0].texture(true)).set_meta("enemies", group)
 	var boss = CharacterData.create_boss(floor_num)
-	var ba = _make_area(boss.sprite_tile, 24, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle)
+	var ba = _make_area(boss.sprite_tile, 32, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle, "", boss.texture(true))
 	ba.set_meta("boss", true)
 	ba.set_meta("enemies", [boss])
 

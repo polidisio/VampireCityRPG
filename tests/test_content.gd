@@ -1,6 +1,17 @@
 extends SceneTree
 # Uso: Godot --headless --path . --script tests/test_content.gd
 func _init():
+	# todo personaje/enemigo/jefe tiene arte propio (combate + mapa)
+	var all: Array = [CharacterData.create_hunter(), CharacterData.create_slayer(), CharacterData.create_vampire_hunter(), CharacterData.create_wild_vampire(),
+		CharacterData.create_noble_vampire(), CharacterData.create_bat(), CharacterData.create_slime(), CharacterData.create_ghost(),
+		CharacterData.create_spider(), CharacterData.create_ghoul()]
+	for f in range(1, 6):
+		all.append(CharacterData.create_boss(f))
+	for k in 4:
+		all.append(CharacterData.create_for_class(k))
+	for c in all:
+		for m in [false, true]:
+			assert(c.art != "" and c.texture(m) != null, c.character_name)
 	for d in range(1, 6):
 		for i in 30:
 			var e = CharacterData.get_random_enemy(d, d)

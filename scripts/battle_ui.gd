@@ -79,12 +79,18 @@ func _build_stage():
 	sprites.clear()
 	hp_labels.clear()
 	enemy_hp_label.visible = false
-	_make_sprite(player_char, Vector2(60, 58), 1.0 if player_char.class_art != "" else 3.0)
+	_make_sprite(player_char, Vector2(60, 58), 1.0 if player_char.art != "" else 3.0)
 	var n = enemy_team.size()
 	for i in n:
 		var e = enemy_team[i]
-		var pos = Vector2(255 - (i >> 1) * 70, 55 if n == 1 else 28 + (i % 2) * 44)
-		_make_sprite(e, pos, 4.0 if e.is_boss else 2.0, true)
+		if e.art == "": # tile Kenney: 16 px ampliado
+			_make_sprite(e, Vector2(255 - (i >> 1) * 70, 55 if n == 1 else 28 + (i % 2) * 44), 4.0 if e.is_boss else 2.0, true)
+		elif n == 1: # arte propio de 64 px; menos enemigos = más grande
+			_make_sprite(e, Vector2(250, 50), 1.2 if e.is_boss else 1.0)
+		elif n == 2:
+			_make_sprite(e, Vector2(210 + i * 65, 52), 0.75)
+		else:
+			_make_sprite(e, Vector2(255 - (i >> 1) * 70, 28 + (i % 2) * 44), 0.5)
 
 # El atacante embiste hacia el objetivo y el objetivo parpadea en rojo.
 func animate_attack(attacker: CharacterData, target: CharacterData):
@@ -109,8 +115,8 @@ func update_stats():
 		player_hp_label.text = "HP: %d/%d" % [player_char.hp, player_char.max_hp]
 		player_mp_label.text = "MP: %d/%d%s" % [player_char.mp, player_char.max_mp, player_char.status_text()]
 	for c in hp_labels:
-		# con 3+ enemigos no hay sitio para los nombres: solo HP y estados
-		var show_name = c != player_char and enemy_team.size() <= 2
+		# con 2+ enemigos no hay sitio para los nombres: solo HP y estados
+		var show_name = c != player_char and enemy_team.size() == 1
 		hp_labels[c].text = "%s%d/%d%s" % [c.character_name + " " if show_name else "", c.hp, c.max_hp, c.status_text()]
 	for c in sprites:
 		if c.hp <= 0 and sprites[c].modulate.a > 0.0 and not sprites[c].has_meta("fading"):

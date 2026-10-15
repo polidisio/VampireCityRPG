@@ -19,7 +19,7 @@ var speed: int = 10
 
 var skills: Array = []
 var sprite_tile: int = 100 # tile de assets/sprites
-var class_art: String = "" # si no está vacío: arte propio en assets/sprites/classes/ (<nombre>.png combate, <nombre>_map.png mapa)
+var art: String = "" # arte propio, ruta bajo assets/sprites/ sin extensión (classes/noble, enemies/bat): <art>.png combate, <art>_map.png mapa
 var is_boss: bool = false
 var statuses: Dictionary = {} # nombre -> turnos restantes
 var equipment: Dictionary = {
@@ -28,10 +28,10 @@ var equipment: Dictionary = {
 	"accessory": null
 }
 
-# Textura de combate (64 px) o, con map=true, de mapa (28 px); los enemigos usan su tile.
+# Textura de combate (64 px) o, con map=true, de mapa; sin arte propio usa el tile Kenney.
 func texture(map: bool = false) -> Texture2D:
-	if class_art != "":
-		return load("res://assets/sprites/classes/%s%s.png" % [class_art, "_map" if map else ""])
+	if art != "":
+		return load("res://assets/sprites/%s%s.png" % [art, "_map" if map else ""])
 	return load("res://assets/sprites/tile_%04d.png" % sprite_tile)
 
 static func create_noble() -> CharacterData:
@@ -39,7 +39,7 @@ static func create_noble() -> CharacterData:
 	new_char.character_name = "Vampiro Noble"
 	new_char.class_type = ClassType.NOBLE
 	new_char.sprite_tile = 100
-	new_char.class_art = "noble"
+	new_char.art = "classes/noble"
 	new_char.max_hp = 90
 	new_char.hp = 90
 	new_char.max_mp = 60
@@ -55,7 +55,7 @@ static func create_salvaje() -> CharacterData:
 	new_char.character_name = "Vampiro Salvaje"
 	new_char.class_type = ClassType.SALVAJE
 	new_char.sprite_tile = 87
-	new_char.class_art = "salvaje"
+	new_char.art = "classes/salvaje"
 	new_char.max_hp = 130
 	new_char.hp = 130
 	new_char.max_mp = 30
@@ -71,7 +71,7 @@ static func create_dhamphir() -> CharacterData:
 	new_char.character_name = "Dhampir"
 	new_char.class_type = ClassType.DHAMPIR
 	new_char.sprite_tile = 88
-	new_char.class_art = "dhampir"
+	new_char.art = "classes/dhampir"
 	new_char.max_hp = 90
 	new_char.hp = 90
 	new_char.max_mp = 45
@@ -87,7 +87,7 @@ static func create_hemomante() -> CharacterData:
 	new_char.character_name = "Hemomante"
 	new_char.class_type = ClassType.HEMOMANTE
 	new_char.sprite_tile = 84
-	new_char.class_art = "hemomante"
+	new_char.art = "classes/hemomante"
 	new_char.max_hp = 70
 	new_char.hp = 70
 	new_char.max_mp = 80
@@ -209,6 +209,7 @@ static func create_hunter() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Cazador Ángel"
 	enemy.sprite_tile = 97
+	enemy.art = "enemies/cazador_angel"
 	enemy.level = 1
 	enemy.max_hp = 50
 	enemy.hp = 50
@@ -221,6 +222,7 @@ static func create_slayer() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Slayer"
 	enemy.sprite_tile = 98
+	enemy.art = "enemies/slayer"
 	enemy.level = 2
 	enemy.max_hp = 70
 	enemy.hp = 70
@@ -233,6 +235,7 @@ static func create_vampire_hunter() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Cazador de Vampiros"
 	enemy.sprite_tile = 96
+	enemy.art = "enemies/cazador_vampiros"
 	enemy.level = 3
 	enemy.max_hp = 90
 	enemy.hp = 90
@@ -245,6 +248,7 @@ static func create_wild_vampire() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Vampiro Salvaje"
 	enemy.sprite_tile = 110
+	enemy.art = "enemies/vampiro_salvaje"
 	enemy.level = 2
 	enemy.max_hp = 80
 	enemy.hp = 80
@@ -260,6 +264,7 @@ static func create_noble_vampire() -> CharacterData:
 	var enemy = CharacterData.new()
 	enemy.character_name = "Vampiro Noble"
 	enemy.sprite_tile = 111
+	enemy.art = "enemies/vampiro_noble"
 	enemy.level = 4
 	enemy.max_hp = 120
 	enemy.hp = 120
@@ -272,10 +277,15 @@ static func create_noble_vampire() -> CharacterData:
 	]
 	return enemy
 
+const ENEMY_ART = {"Murciélago Sanguijuela": "murcielago", "Cieno Carmesí": "cieno", "Espectro": "espectro", "Araña de Cripta": "arana",
+	"Cíclope Ghoul": "ciclope_ghoul", "Cazador Capitán": "capitan", "Reina Araña": "reina_arana", "Ogro de la Cripta": "ogro",
+	"Espectro Real": "espectro_real", "Lord Vampiro": "lord_vampiro"}
+
 static func _enemy(n: String, tile: int, lvl: int, health: int, power: int, armor: int, agility: int, sk: Array = []) -> CharacterData:
 	var e = CharacterData.new()
 	e.character_name = n
 	e.sprite_tile = tile
+	e.art = "enemies/" + ENEMY_ART[n]
 	e.level = lvl
 	e.max_hp = health
 	e.hp = health
