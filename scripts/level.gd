@@ -49,11 +49,11 @@ func _ready():
 		quests = saved[4]
 		run_floor = saved[5]
 		meta = saved[6]
-	battle_system.gold_mult = meta.gold_mult()
 	if saved.is_empty() or saved[0] == null: # sin run: elegir clase empieza uno nuevo
 		_show_class_select()
 	else:
 		player.character_data = saved[0]
+	_refresh_modifiers()
 	ground = TextureRect.new()
 	ground.texture = load("res://assets/sprites/tile_0000.png")
 	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -121,9 +121,15 @@ func _show_class_select():
 		b.text = data.character_name.replace(" ", "\n")
 		b.pressed.connect(func():
 			meta.apply_to_run(data)
+			layer.queue_free()
+			var menu = PactMenu.new(meta.last_pacts)
+			add_child(menu)
+			data.pacts = await menu.confirmed
+			meta.last_pacts = data.pacts
+			Pacts.apply_start(data)
 			player.character_data = data
 			run_essence = 0
-			layer.queue_free()
+			_refresh_modifiers()
 			busy = false
 			player.process_mode = Node.PROCESS_MODE_INHERIT
 			await _spend_picks("Mejora inicial (Iniciado). Elige una:") # solo si el altar la da
@@ -278,11 +284,13 @@ func _go_floor(n: int):
 	var record = n > max_floor
 	max_floor = maxi(max_floor, n)
 	run_floor = maxi(run_floor, n)
+	var gained = 0
 	if record:
-		_gain_essence(ESSENCE_RECORD)
+		gained = _gain_essence(ESSENCE_RECORD)
+		meta.streak = 0
 	_spawn_floor()
 	if record:
-		_note("Piso récord: +%d Esencia" % ESSENCE_RECORD)
+		_note("Piso récord: +%d Esencia" % gained)
 	_save()
 
 func _add_block(r: Rect2, tex: Texture2D, tiled := true):
@@ -404,6 +412,7 @@ func _spawn_floor():
 		var group = _enemy_group()
 		_make_area(group[0].sprite_tile, 20, _free_pos(Rect2(120, 32, w - 152, h - 64)), try_start_battle, "", group[0].texture(true)).set_meta("enemies", group)
 	var boss = CharacterData.create_boss(floor_num)
+	_scale_enemy(boss, true)
 	var ba = _make_area(boss.sprite_tile, 32, _free_pos(Rect2(w * 0.72, 32, w * 0.28 - 32, h - 64)), try_start_battle, "", boss.texture(true))
 	ba.set_meta("boss", true)
 	_torch(ba, 70) # el jefe se ve desde lejos
@@ -412,8 +421,10 @@ func _spawn_floor():
 func _enemy_group() -> Array[CharacterData]:
 	var difficulty = clampi(floor_num, 1, 5)
 	var group: Array[CharacterData] = []
-	for i in CharacterData.get_enemy_count_for_difficulty(difficulty):
-		group.append(CharacterData.get_random_enemy(difficulty, floor_num))
+	for i in Pacts.enemy_count(CharacterData.get_enemy_count_for_difficulty(difficulty), player.character_data.pacts):
+		var e = CharacterData.get_random_enemy(difficulty, floor_num)
+		_scale_enemy(e)
+		group.append(e)
 	return group
 
 func _open_shop():
@@ -468,9 +479,22 @@ func _note(text: String) -> void:
 		if msg.text == text:
 			msg.text = "")
 
-func _gain_essence(n: int) -> void:
-	meta.essence += n
-	run_essence += n
+# Esencia con la recompensa de los pactos; devuelve lo ganado.
+func _gain_essence(n: int) -> int:
+	var c = player.character_data
+	var g = int(round(n * Pacts.reward_mult(c.pacts if c else [])))
+	meta.essence += g
+	run_essence += g
+	return g
+
+# Oro y mochila según altar y pactos del run.
+func _refresh_modifiers() -> void:
+	var pacts: Array = player.character_data.pacts if player.character_data else []
+	battle_system.gold_mult = meta.gold_mult() * Pacts.gold_mult(pacts)
+	player_inventory.max_consumables = 0 if pacts.has("ayuno") else meta.max_consumables()
+
+func _scale_enemy(e: CharacterData, boss := false) -> void:
+	Pacts.scale_enemy(e, player.character_data.pacts if player.character_data else [], boss, meta.assist())
 
 func _open_altar():
 	busy = true
@@ -479,8 +503,7 @@ func _open_altar():
 	menu.closed.connect(func():
 		busy = false
 		player.process_mode = Node.PROCESS_MODE_INHERIT
-		battle_system.gold_mult = meta.gold_mult()
-		player_inventory.max_consumables = meta.max_consumables()
+		_refresh_modifiers()
 		_save())
 	add_child(menu)
 
@@ -548,9 +571,10 @@ func _on_battle_ended(victory: bool):
 	_end_battle()
 	if victory:
 		quests.add("kill", battle_system.enemy_team.size())
-		var gain = battle_system.enemy_team.size() + (BOSS_ESSENCE + 2 * floor_num if current_enemy.has_meta("boss") else 0)
-		_gain_essence(gain)
+		var gain = _gain_essence(battle_system.enemy_team.size() + (BOSS_ESSENCE + 2 * floor_num if current_enemy.has_meta("boss") else 0))
 		_note("+%d Esencia" % gain)
+		if current_enemy.has_meta("boss"):
+			meta.streak = 0
 		if current_enemy.has_meta("boss"):
 			quests.add("boss")
 			# cerca del jefe pero a >=32px del jugador (está pegado al jefe) para no activar las escaleras al instante
@@ -572,7 +596,9 @@ func _end_run() -> void:
 	var c = player.character_data
 	var bonus = RUN_END_GOLD * floor_num # consuelo: la muerte no deja con las manos vacías
 	player_inventory.add_gold(bonus)
-	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nBotín del superviviente: +%d oro.\nEsencia del run: +%d (tienes %d). Gástala en el altar." % [floor_num, c.level, c.relics.size(), bonus, run_essence, meta.essence])
+	meta.streak += 1
+	var help = "\nAyuda: enemigos -%d%% hasta que superes un jefe o un récord." % int(meta.assist() * 100) if meta.assist() > 0 else ""
+	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nBotín del superviviente: +%d oro.\nEsencia del run: +%d (tienes %d). Gástala en el altar.%s" % [floor_num, c.level, c.relics.size(), bonus, run_essence, meta.essence, help])
 	await box.closed
 	player_inventory.items.clear()
 	SaveGame.save(null, player_inventory, 0, max_floor, quests, 0, meta)

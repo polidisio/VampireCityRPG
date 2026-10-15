@@ -73,6 +73,6 @@ Decisiones tomadas: progresión **por run** (nivel, habilidades elegidas y reliq
 **G3 Altar (meta)**
 7. [x] Altar en el hub (`AltarMenu`, `Meta`): Esencia (1 por enemigo, 5+2/piso por jefe, +10 por piso récord) y 10 mejoras: Vitalidad, Fuerza, Guardia, Celeridad, Mente, Codicia, Mochila, Iniciado, Herencia, Retorno. Pendiente: atajo de piso y desbloqueo de clases/habilidades/reliquias.
 **G4 Dificultad adaptable**
-8. [ ] Pactos voluntarios (más dificultad ⇒ más Esencia/oro) y ayuda suave tras varias muertes seguidas; `FLOOR_EASE` pasa a ser la base.
+8. [x] Pactos (`Pacts`, `PactMenu` al elegir clase): Sangre Espesa, Garras Afiladas, Horda, Jefes Furiosos, Fragilidad, Ayuno y Pobreza; recompensa +% en Esencia y oro, y se recuerdan los del run anterior. Ayuda suave: desde la 2.ª muerte seguida los enemigos pierden un 5% por muerte (máx. 20%) hasta superar un jefe o un récord. `FLOOR_EASE` queda como base.
 **G5 Balance**
 9. [ ] `sim_balance` con elecciones de build; ajustar para que un run medio llegue al piso 5–8 sin meta.

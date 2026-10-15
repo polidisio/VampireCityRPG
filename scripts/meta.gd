@@ -16,6 +16,12 @@ const UPGRADES = [
 
 var essence: int = 0
 var levels: Dictionary = {}
+var streak: int = 0 # muertes seguidas sin superar un jefe ni un piso récord
+var last_pacts: Array = [] # pactos del último run, preseleccionados en el siguiente
+
+# Ayuda suave: tras la 2.ª muerte seguida los enemigos pierden un 5% por muerte (hasta Pacts.MAX_ASSIST).
+func assist() -> float:
+	return minf(0.05 * maxi(streak - 1, 0), Pacts.MAX_ASSIST)
 
 func level(id: String) -> int:
 	return int(levels.get(id, 0))
@@ -54,11 +60,13 @@ func apply_to_run(c: CharacterData) -> void:
 	c.revive_ready = level("retorno") > 0
 
 func to_dict() -> Dictionary:
-	return {"essence": essence, "levels": levels}
+	return {"essence": essence, "levels": levels, "streak": streak, "last_pacts": last_pacts}
 
 static func from_dict(d: Dictionary) -> Meta:
 	var m = Meta.new()
 	m.essence = int(d.get("essence", 0))
+	m.streak = int(d.get("streak", 0))
+	m.last_pacts = d.get("last_pacts", [])
 	for k in d.get("levels", {}):
 		m.levels[k] = int(d.levels[k])
 	return m

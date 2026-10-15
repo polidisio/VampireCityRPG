@@ -309,6 +309,9 @@ func _on_skill_pressed():
 func _on_item_pressed():
 	if not (is_player_turn and is_battle_active):
 		return
+	if player_team[0].pacts.has("ayuno"):
+		ui.add_log("Ayuno: no puedes usar objetos")
+		return
 	var usable = player_inventory.get_consumables() if player_inventory else []
 	if usable.is_empty():
 		ui.add_log("¡No tienes objetos!")

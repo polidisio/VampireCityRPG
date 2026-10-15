@@ -11,7 +11,7 @@ static func save(c: CharacterData, inv: Inventory, floor_num: int = 1, max_floor
 	var d = {"gold": inv.gold, "floor": floor_num, "max_floor": max_floor, "run_floor": run_floor, "meta": (meta if meta else Meta.new()).to_dict(), "quests": (quests if quests else QuestLog.new()).to_dict()}
 	if c:
 		d.merge({"class": c.class_type, "items": inv.items.map(func(i): return i.id), "equipment": {},
-			"skills": c.skills.map(func(s): return s.name), "relics": c.relics, "pending_picks": c.pending_picks, "revive": c.revive_ready})
+			"skills": c.skills.map(func(s): return s.name), "relics": c.relics, "pending_picks": c.pending_picks, "revive": c.revive_ready, "pacts": c.pacts})
 		for s in STATS:
 			d[s] = c.get(s)
 		for slot in c.equipment:
@@ -46,6 +46,7 @@ static func load_game() -> Array:
 	c.relics = d.get("relics", [])
 	c.pending_picks = int(d.get("pending_picks", 0))
 	c.revive_ready = bool(d.get("revive", false))
+	c.pacts = d.get("pacts", [])
 	for slot in d.get("equipment", {}):
 		c.equipment[slot] = ItemData.find_by_id(d.equipment[slot])
 	for id in d.get("items", []):
