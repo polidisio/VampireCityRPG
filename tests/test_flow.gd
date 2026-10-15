@@ -55,7 +55,7 @@ func run():
 	for i in 4: await process_frame
 	lvl.get_children().filter(func(n): return n is CanvasLayer and n != lvl.battle_system and n.layer == 5).map(func(n): n.queue_free())
 	lvl.busy = false
-	var p = CharacterData.create_for_class(1) # Salvaje: Desgarro al nivel 3
+	var p = CharacterData.create_for_class(1) # Salvaje
 	p.level = 2
 	p.sync_skills()
 	p.experience = p.experience_to_next_level - 1
@@ -96,8 +96,8 @@ func run():
 		return fail("número flotante")
 	e.hp = 0
 	lvl.battle_system.check_battle_end()
-	if lvl.battle_system.new_level != 3 or lvl.battle_system.new_skills.map(func(s): return s.name) != ["Desgarro"]:
-		return fail("aviso de nivel: %d %s" % [lvl.battle_system.new_level, lvl.battle_system.new_skills])
+	if lvl.battle_system.new_level != 3 or p.pending_picks != 1:
+		return fail("aviso de nivel: %d, mejoras pendientes %d" % [lvl.battle_system.new_level, p.pending_picks])
 	if not lvl.battle_system.ui.visible:
 		return fail("la UI no debería ocultarse todavía (se lee el log)")
 	await create_timer(1.6).timeout

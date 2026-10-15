@@ -17,7 +17,6 @@ var player_inventory: Inventory
 var floor_num: int = 1 # lo fija el nivel; condiciona los drops
 const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus turnos
 var new_level: int = 0 # nivel alcanzado en el último combate ganado (0 = no subió)
-var new_skills: Array = [] # habilidades desbloqueadas en él
 var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
 func _ready():
@@ -35,8 +34,9 @@ func start_battle(player: CharacterData, enemies: Array[CharacterData], inventor
 	player_inventory = inventory
 	player_team = [player]
 	player.statuses.clear()
+	if player.has_relic("furia"):
+		player.add_status("furia", 2)
 	new_level = 0
-	new_skills = []
 	enemy_team = enemies
 	for e in enemy_team:
 		plan_intent(e)
@@ -74,7 +74,7 @@ func next_turn():
 	
 	var actor: CharacterData = current_actor.character
 	if not current_actor.is_enemy:
-		actor.mp = mini(actor.max_mp, actor.mp + MP_REGEN)
+		actor.mp = mini(actor.max_mp, actor.mp + MP_REGEN + (3 if actor.has_relic("rosario") else 0))
 	var stunned = actor.has_status("aturdido")
 	var hp_before = actor.hp
 	actor.tick_statuses()
@@ -121,6 +121,7 @@ func player_attack(target_index: int):
 	Sfx.play(self, "hit")
 	ui.animate_attack(attacker, target)
 	ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
+	_on_player_hit(attacker, target)
 	if ui:
 		ui.update_stats()
 	
@@ -141,6 +142,7 @@ func player_use_skill(skill_index: int, target_index: int):
 		return
 	
 	_use_skill(attacker, skill, enemy_team[target_index])
+	_on_player_hit(attacker, enemy_team[target_index])
 	
 	# Update UI stats after skill usage
 	if ui:
@@ -197,7 +199,16 @@ func incoming_damage() -> int:
 	return total
 
 func _power(user: CharacterData, base: int) -> int:
-	return int(base * 1.5) if user.has_status("furia") else base
+	var m = 1.5 if user.has_status("furia") else 1.0
+	if user.has_relic("sed") and user.hp * 100 < user.max_hp * 40:
+		m *= 1.5
+	return int(base * m)
+
+# Reliquia Colmillo Voraz: cura al matar.
+func _on_player_hit(attacker: CharacterData, target: CharacterData) -> void:
+	if target.hp <= 0 and attacker.has_relic("colmillo"):
+		attacker.heal(10)
+		ui.float_text(attacker, "+10", Color(0.5, 1, 0.6))
 
 func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 	ui.float_text(user, skill.name, Color.WHITE)
@@ -219,7 +230,7 @@ func _use_skill(user: CharacterData, skill: SkillData, target: CharacterData):
 		var dmg = target.take_damage(_power(user, skill.damage))
 		ui.float_text(target, "-%d" % dmg, Color(1, 0.45, 0.45))
 	if skill.status != "":
-		target.add_status(skill.status, skill.status_turns)
+		target.add_status(skill.status, skill.status_turns + (2 if skill.status == "sangrado" and user.has_relic("calice") else 0))
 
 func check_battle_end():
 	if not is_battle_active:
@@ -250,13 +261,11 @@ func check_battle_end():
 			exp_gained += (10 + 15 * e.level) * (2 if e.is_boss else 1)
 		var pc = player_team[0]
 		var level_before = pc.level
-		var known = pc.skills.map(func(sk): return sk.name)
 		pc.add_exp(exp_gained)
 		ui.add_log("¡Victoria! +%d EXP" % exp_gained)
 		if pc.level > level_before:
 			new_level = pc.level
-			new_skills = pc.skills.filter(func(sk): return not known.has(sk.name))
-			ui.add_log("¡Nivel %d!%s" % [pc.level, " Nueva: " + ", ".join(new_skills.map(func(sk): return sk.name)) if not new_skills.is_empty() else ""])
+			ui.add_log("¡Nivel %d!" % pc.level)
 		Sfx.play(self, "victory")
 		
 		if player_inventory != null:
@@ -264,7 +273,7 @@ func check_battle_end():
 			for drop in drops:
 				player_inventory.add_item(drop)
 				ui.add_log("¡Obtuviste: %s!" % drop.name)
-			var gold_drop = randi_range(5, 20)
+			var gold_drop = int(randi_range(5, 20) * (1.5 if pc.has_relic("bolsa") else 1.0))
 			player_inventory.add_gold(gold_drop)
 			ui.add_log("¡Obtuviste: %d oro!" % gold_drop)
 		

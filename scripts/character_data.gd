@@ -18,6 +18,8 @@ var defense: int = 5
 var speed: int = 10
 
 var skills: Array = []
+var relics: Array = [] # ids de Upgrades.RELICS del run
+var pending_picks: int = 0 # mejoras de nivel sin elegir
 var sprite_tile: int = 100 # tile de assets/sprites
 var art: String = "" # arte propio, ruta bajo assets/sprites/ sin extensión (classes/noble, enemies/bat): <art>.png combate, <art>_map.png mapa
 var is_boss: bool = false
@@ -126,8 +128,12 @@ static func class_skills(c: ClassType) -> Array:
 			SkillData.create("Mirada Hipnótica", "Aturde al enemigo", 0, 0, 15).with_status("aturdido", 2).at_level(5),
 			SkillData.create("Orgullo Ancestral", "Aumenta tu ataque", 0, 0, 14).with_status("furia", 3, true).at_level(7)]
 
+# Habilidades de partida (nivel 1); el resto se aprenden eligiéndolas al subir de nivel.
 func sync_skills():
-	skills = CharacterData.class_skills(class_type).filter(func(sk): return sk.unlock_level <= level)
+	skills = CharacterData.class_skills(class_type).filter(func(sk): return sk.unlock_level <= 1)
+
+func has_relic(id: String) -> bool:
+	return relics.has(id)
 
 func has_status(s: String) -> bool:
 	return statuses.has(s)
@@ -160,14 +166,7 @@ func add_exp(amount: int):
 func level_up():
 	level += 1
 	experience_to_next_level = int(experience_to_next_level * 1.35)
-	max_hp += 10
-	hp = max_hp
-	max_mp += 5
-	mp = max_mp
-	attack += 2
-	defense += 1
-	speed += 1
-	sync_skills()
+	pending_picks += 1 # la mejora se elige (Upgrades.level_offers), no es automática
 
 # Daño que causaría un golpe de `amount` (lo usan take_damage y las intenciones de los enemigos).
 func preview_damage(amount: int) -> int:

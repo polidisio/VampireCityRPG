@@ -55,3 +55,24 @@ Aplazado: música de fondo.
 4. [x] Daño total que recibirás esta ronda sobre el jugador; barras HP/MP en vez de texto; estados como iconos con turnos
 5. [x] Quitar líneas de log redundantes (daño, habilidades): el nombre de la habilidad sale flotando; iconos en el menú de habilidades
 6. [x] Tests (intenciones coherentes con lo que ocurre) + capturas + sim_balance sin regresión
+
+## Plan G: builds por run + metaprogresión (propuesta, pendiente de confirmar)
+Decisiones tomadas: progresión **por run** (nivel, habilidades elegidas y reliquias se reinician en cada bajada); al morir se pierde solo la build del run; el oro **persiste** para que el mercader del hub tenga sentido.
+- **Run** = una bajada a la torre. Muerte o retirada → vuelta al hub, build nueva en el siguiente run.
+- **Oro** (persistente, se conserva al morir): lo gasta el mercader en la *preparación del run* (consumibles que llevas, equipo inicial de un tier). Equipo y objetos hallados en el run se pierden con él.
+- **Esencia** (persistente): de jefes y de pisos nuevos (más si superas tu récord); se gasta en el altar del hub.
+
+**G1 Núcleo de run (sin meta)**
+1. [x] Run separado del guardado: `SaveGame.save(null, …)` guarda solo la meta (oro, piso máx., misiones); `run_floor` = piso más profundo del run, las escaleras del hub vuelven a él (un run nuevo empieza en el piso 1).
+2. [x] Subida de nivel = elegir 1 de 3 mejoras (stats, habilidades de la clase, pasivas); fuera el desbloqueo fijo por nivel. Máx. 4 habilidades equipadas.
+3. [x] Reliquias: tras cada jefe, elegir 1 de 3 (~10 iniciales: sangrado+, curar al matar, daño con poca vida…) con ganchos en `battle_system` (al golpear, al matar, inicio de turno).
+4. [x] Muerte = fin de run: pantalla resumen (Esencia ganada), vuelta al hub, build reiniciada. Test de flujo.
+**G2 Economía y mercader**
+5. [ ] Oro persistente; el mercader vende preparación de run (consumibles limitados, equipo inicial) y deja de vender equipo permanente.
+6. [ ] Migrar el guardado actual (oro, piso máx., misiones) al formato nuevo.
+**G3 Altar (meta)**
+7. [ ] NPC Altar + ~12 mejoras con Esencia: +HP/+ataque base, +oro, +1 slot de objeto, empezar con una reliquia, revivir 1 vez por run, atajo al último jefe derrotado, desbloqueo de clases/habilidades/reliquias.
+**G4 Dificultad adaptable**
+8. [ ] Pactos voluntarios (más dificultad ⇒ más Esencia/oro) y ayuda suave tras varias muertes seguidas; `FLOOR_EASE` pasa a ser la base.
+**G5 Balance**
+9. [ ] `sim_balance` con elecciones de build; ajustar para que un run medio llegue al piso 5–8 sin meta.

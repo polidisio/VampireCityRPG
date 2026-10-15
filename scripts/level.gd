@@ -7,6 +7,8 @@ var busy: bool = false
 var player_inventory: Inventory
 var floor_num: int = 0 # 0 = hub
 var max_floor: int = 1
+var run_floor: int = 0 # piso más profundo del run en curso (0 = sin run); las escaleras del hub vuelven a él
+signal chosen(option: Dictionary)
 var quests := QuestLog.new()
 var nearby: Callable
 var msg: Label
@@ -34,15 +36,17 @@ func _ready():
 	battle_system.battle_ended.connect(_on_battle_ended)
 	battle_system.battle_fled.connect(_on_battle_fled)
 	var saved = SaveGame.load_game()
-	if saved.is_empty():
-		player_inventory = Inventory.new()
-		_show_class_select()
-	else:
-		player.character_data = saved[0]
+	player_inventory = Inventory.new()
+	if not saved.is_empty():
 		player_inventory = saved[1]
 		floor_num = saved[2]
 		max_floor = saved[3]
 		quests = saved[4]
+		run_floor = saved[5]
+	if saved.is_empty() or saved[0] == null: # sin run: elegir clase empieza uno nuevo
+		_show_class_select()
+	else:
+		player.character_data = saved[0]
 	ground = TextureRect.new()
 	ground.texture = load("res://assets/sprites/tile_0000.png")
 	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -121,7 +125,7 @@ func _show_class_select():
 	add_child(layer)
 
 func _save():
-	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor, quests)
+	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor, quests, run_floor)
 
 func _unhandled_input(event):
 	if event.is_action_pressed("fullscreen"):
@@ -262,6 +266,7 @@ func _go_floor(n: int):
 	_clear_floor()
 	floor_num = n
 	max_floor = maxi(max_floor, n)
+	run_floor = maxi(run_floor, n)
 	_spawn_floor()
 	_save()
 
@@ -374,7 +379,7 @@ func _spawn_floor():
 		_make_area(112, 28, Vector2(90, 135), _say.bind("mercader"), "E: Tienda", load("res://assets/sprites/npcs/mercader_map.png"))
 		_make_area(99, 28, Vector2(230, 135), _say.bind("posadera"), "E: Descansar (10 oro)", load("res://assets/sprites/npcs/posadera_map.png"))
 		_make_area(86, 28, Vector2(160, 124), _say.bind("anciano"), "E: Hablar con el Anciano", load("res://assets/sprites/npcs/anciano_map.png"))
-		_make_area(45, 16, Vector2(160, 198), func(_a): _go_floor(max_floor)).get_child(0).visible = false # las escaleras ya están en el fondo
+		_make_area(45, 16, Vector2(160, 198), func(_a): _go_floor(maxi(1, run_floor))).get_child(0).visible = false # las escaleras ya están en el fondo
 		return
 	floor_label.text = "PISO %d  (H: hub)" % floor_num
 	var w = floor_size.x
@@ -408,15 +413,37 @@ func _open_shop():
 func _face(npc: String) -> Texture2D:
 	return load("res://assets/sprites/npcs/%s_face.png" % npc)
 
-func _open_dialog(text: String, actions: Array = [], face: Texture2D = null):
+func _open_dialog(text: String, actions: Array = [], face: Texture2D = null, closable := true) -> DialogBox:
 	Sfx.play(self, "dialog")
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
-	var box = DialogBox.new(text, actions, face)
+	var box = DialogBox.new(text, actions, face, closable)
 	box.closed.connect(func():
 		busy = false
 		player.process_mode = Node.PROCESS_MODE_INHERIT)
 	add_child(box)
+	return box
+
+# Elección obligatoria entre mejoras (Upgrades); devuelve la elegida.
+func _choose(title: String, offers: Array) -> Dictionary:
+	var lines = [title]
+	var actions = []
+	for o in offers:
+		lines.append("- %s: %s" % [o.name, o.desc])
+		actions.append([o.name, func(): chosen.emit(o)])
+	_open_dialog("\n".join(lines), actions, null, false)
+	return await chosen
+
+func _pick_relic() -> void:
+	var offers = Upgrades.relic_offers(player.character_data)
+	if not offers.is_empty():
+		Upgrades.apply_relic(player.character_data, await _choose("Reliquia del jefe. Elige una:", offers))
+
+func _spend_picks() -> void:
+	var c = player.character_data
+	while c.pending_picks > 0:
+		c.pending_picks -= 1
+		Upgrades.apply(c, await _choose("¡Nivel %d! Elige una mejora:" % (c.level - c.pending_picks), Upgrades.level_offers(c)))
 
 func _say(npc: String, node: String = "start"):
 	var c = player.character_data
@@ -489,21 +516,23 @@ func _on_battle_ended(victory: bool):
 			var pos = _free_pos(near, player.position, 32.0)
 			_make_area(45, 16, pos, func(_a): _go_floor(floor_num + 1))
 			msg.text = "¡Jefe derrotado! Baja por las escaleras"
+		var boss = current_enemy.has_meta("boss")
 		current_enemy.queue_free()
+		if boss:
+			await _pick_relic()
+		await _spend_picks()
 		_save()
-		if battle_system.new_level > 0:
-			var lines = ["¡Subes a nivel %d!" % battle_system.new_level]
-			for sk in battle_system.new_skills:
-				lines.append("Nueva habilidad: %s (%d MP)\n  %s" % [sk.name, sk.mp_cost, sk.description])
-			_open_dialog("\n".join(lines))
 	else:
-		# ponytail: sin penalización, revive con HP/MP completos
-		var c = player.character_data
-		c.hp = c.max_hp
-		c.mp = c.max_mp
-		floor_num = 0 # ponytail: al morir vuelves al hub
-		_save()
-		get_tree().reload_current_scene()
+		await _end_run()
+
+# La muerte cierra el run: se pierde la build (nivel, habilidades, reliquias, equipo y objetos); se conservan el oro y la meta.
+func _end_run() -> void:
+	var c = player.character_data
+	var box = _open_dialog("Has caído en el piso %d.\nNivel %d, %d reliquias.\nConservas %d de oro. Empieza un nuevo run." % [floor_num, c.level, c.relics.size(), player_inventory.gold])
+	await box.closed
+	player_inventory.items.clear()
+	SaveGame.save(null, player_inventory, 0, max_floor, quests, 0)
+	get_tree().reload_current_scene()
 
 func _on_battle_fled():
 	_end_battle()

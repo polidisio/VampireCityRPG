@@ -6,11 +6,13 @@ signal closed
 var text: String
 var actions: Array # [[etiqueta, Callable], ...]
 var portrait: Texture2D
+var closable: bool # false: elección obligatoria (sin "Cerrar" ni Esc)
 
-func _init(t: String, acts: Array = [], face: Texture2D = null):
+func _init(t: String, acts: Array = [], face: Texture2D = null, can_close := true):
 	text = t
 	actions = acts
 	portrait = face
+	closable = can_close
 
 func _ready():
 	var panel = Panel.new()
@@ -35,7 +37,8 @@ func _ready():
 	panel.add_child(row)
 	for a in actions:
 		row.add_child(_button(a[0], a[1]))
-	row.add_child(_button("Cerrar [Esc]", Callable()))
+	if closable:
+		row.add_child(_button("Cerrar [Esc]", Callable()))
 	row.get_child(0).grab_focus.call_deferred()
 
 func _button(label: String, on_press: Callable) -> Button:
@@ -51,6 +54,6 @@ func _finish(on_press: Callable):
 		on_press.call()
 
 func _unhandled_input(event):
-	if event.is_action_pressed("ui_cancel"):
+	if closable and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_finish(Callable())

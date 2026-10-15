@@ -64,6 +64,22 @@ func _act():
 	else:
 		bs.player_attack(t)
 
+# Elecciones del bot: reliquia al azar tras el jefe; en cada nivel, una habilidad si la ofrecen y si no, lo primero que salga.
+func _build(p: CharacterData, boss: bool) -> void:
+	if boss:
+		var r = Upgrades.relic_offers(p)
+		if not r.is_empty():
+			Upgrades.apply_relic(p, r[0])
+	while p.pending_picks > 0:
+		p.pending_picks -= 1
+		var offers = Upgrades.level_offers(p)
+		var pick = offers[0]
+		for o in offers:
+			if o.id == "skill":
+				pick = o
+				break
+		Upgrades.apply(p, pick)
+
 func _fight(p: CharacterData, enemies: Array[CharacterData]) -> bool:
 	done = false
 	bs.floor_num = cur_floor
@@ -73,6 +89,7 @@ func _fight(p: CharacterData, enemies: Array[CharacterData]) -> bool:
 		await process_frame
 		frames += 1
 	if won:
+		_build(p, enemies[0].is_boss)
 		for it in inv.items.duplicate():
 			var cur = p.equipment["weapon" if it.type == ItemData.ItemType.WEAPON else "armor"] if it.type in [ItemData.ItemType.WEAPON, ItemData.ItemType.ARMOR] else null
 			if it.type == ItemData.ItemType.WEAPON and it.attack_bonus > (cur.attack_bonus if cur else 0):
