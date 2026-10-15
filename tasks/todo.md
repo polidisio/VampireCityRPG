@@ -76,3 +76,16 @@ Decisiones tomadas: progresión **por run** (nivel, habilidades elegidas y reliq
 8. [x] Pactos (`Pacts`, `PactMenu` al elegir clase): Sangre Espesa, Garras Afiladas, Horda, Jefes Furiosos, Fragilidad, Ayuno y Pobreza; recompensa +% en Esencia y oro, y se recuerdan los del run anterior. Ayuda suave: desde la 2.ª muerte seguida los enemigos pierden un 5% por muerte (máx. 20%) hasta superar un jefe o un récord. `FLOOR_EASE` queda como base.
 **G5 Balance**
 9. [ ] `sim_balance` con elecciones de build; ajustar para que un run medio llegue al piso 5–8 sin meta.
+
+## Plan H: pisos con más chicha (propuesta confirmada: sello, élite con llave, eventos, identidad del jefe)
+Problema: se puede ir directo al jefe, y un jefe desconocido no se distingue de un enemigo.
+**H1 Sello + élite con llave**
+1. [x] Puerta sellada (red + candado) entre el piso y la sala del jefe; no se cruza sin la llave. Tocarla avisa "El sello resiste. Busca al élite".
+2. [x] Un élite por piso (enemigo más fuerte, brillo dorado, llave flotando) lejos de la salida; al vencerlo suelta la llave, rompe el sello y da Esencia extra.
+3. [x] HUD: estado del sello en la etiqueta del piso. El sello es por piso (se regenera con el piso).
+**H2 Eventos de piso**
+4. [x] Ataúd x2 (botín de oro/objeto/Esencia, o 30% emboscada), pozo de sangre (cura 50%, una vez), sarcófago 40% (pagas 25% de vida por elegir 1 de 3 reliquias), mercader errante 25% (abre la tienda).
+**H3 Identidad del jefe**
+5. [x] Jefe más grande, aura de color propio por jefe, nombre sobre su cabeza, suelo de la sala teñido de rojo.
+6. [x] Tarjeta de entrada al empezar el combate ("PISO 3 / REINA ARAÑA").
+7. [x] Tests: alcanzabilidad (élite y eventos antes de la puerta), sello, eventos, tarjeta.

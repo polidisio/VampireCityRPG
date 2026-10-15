@@ -15,7 +15,7 @@ func _init():
 		await process_frame
 		var objs = lvl.get_tree().get_nodes_in_group("floor_obj").filter(func(n): return n is Area2D and not n.is_queued_for_deletion())
 		var boss = objs.filter(func(n): return n.has_meta("boss"))
-		assert(boss.size() == 1 and objs.size() >= 5 and objs.size() <= 8, "objs %d" % objs.size())
+		assert(boss.size() == 1 and objs.size() >= 9 and objs.size() <= 17, "objs %d" % objs.size()) # 4-7 grupos + jefe + élite + 3-5 eventos
 		total_obs += lvl.blocked.size()
 		# flood fill
 		var step = 8.0
