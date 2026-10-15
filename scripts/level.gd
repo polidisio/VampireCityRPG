@@ -111,6 +111,8 @@ func _save():
 	SaveGame.save(player.character_data, player_inventory, floor_num, max_floor, quests)
 
 func _unhandled_input(event):
+	if event.is_action_pressed("fullscreen"):
+		Controls.toggle_fullscreen()
 	if busy:
 		return
 	if event.is_action_pressed("inventory"):

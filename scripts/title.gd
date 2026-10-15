@@ -42,6 +42,10 @@ func _ready():
 	_button(box, "Salir", func(): get_tree().quit())
 	first.grab_focus.call_deferred()
 
+func _unhandled_input(event):
+	if event.is_action_pressed("fullscreen"):
+		Controls.toggle_fullscreen()
+
 func _button(box: Control, label: String, on_press: Callable) -> Button:
 	var b = Button.new()
 	b.text = label

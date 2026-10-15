@@ -27,6 +27,8 @@ func run():
 	for a in ["interact", "inventory", "hub", "pause"]:
 		if not InputMap.has_action(a) or InputMap.action_get_events(a).size() != 2:
 			return fail("acción " + a)
+	if not InputMap.has_action("fullscreen") or InputMap.action_get_events("fullscreen").size() != 1:
+		return fail("acción fullscreen")
 	# título: sin guardado solo Nueva partida; con guardado, el primer pulso solo pide confirmación
 	var title = load("res://scenes/title.tscn").instantiate()
 	root.add_child(title)

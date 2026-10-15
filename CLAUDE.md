@@ -11,7 +11,7 @@
 
 - **Engine:** Godot 4.2+ (GL Compatibility renderer)
 - **Language:** GDScript
-- **Platform:** Cross-platform (mobile-friendly)
+- **Platform:** Desktop (PC y Mac). Móvil descartado por ahora
 - **Resolution:** 320x180 viewport (pixel art)
 
 ## Quick Start
@@ -46,8 +46,9 @@ VampireCityRPG/
 - Renderer: GL Compatibility
 
 ### Features
-- Mobile support (ASTC/ETC2 texture compression)
-- Touch-ready input system
+- Desktop: ventana 1280x720 (escala entera x4 del viewport), F11 pantalla completa
+- Teclado, ratón y mando (acciones `interact/inventory/hub/pause/fullscreen` en `scripts/controls.gd`)
+- Compresión de texturas S3TC/BPTC
 
 ## Architecture
 
