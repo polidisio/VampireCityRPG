@@ -19,9 +19,9 @@ func _ready():
 	var label = Label.new()
 	label.text = text
 	label.position = Vector2(12, 12)
-	label.size = Vector2(296 if not portrait else 216, 110)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel.add_child(label)
+	label.size = Vector2(296 if not portrait else 216, 110) # tras add_child: antes, el Label crece al ancho del texto y pasa bajo el retrato
 	if portrait:
 		var pic = TextureRect.new()
 		pic.texture = portrait
