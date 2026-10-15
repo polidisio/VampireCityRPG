@@ -273,7 +273,18 @@ func check_battle_end():
 func _on_attack_pressed():
 	if is_player_turn and is_battle_active:
 		ui.menu.visible = false
-		player_attack(first_alive_enemy())
+		_pick_target(player_attack)
+
+# Con varios enemigos vivos el jugador elige a quién golpear; con uno solo no pregunta.
+func _pick_target(on_pick: Callable):
+	var alive: Array[int] = []
+	for i in enemy_team.size():
+		if enemy_team[i].hp > 0:
+			alive.append(i)
+	if alive.size() <= 1:
+		on_pick.call(first_alive_enemy())
+		return
+	ui.show_target_menu(alive.map(func(i): return enemy_team[i]), func(k): on_pick.call(alive[k]))
 
 func _on_skill_pressed():
 	if is_player_turn and is_battle_active:
@@ -302,7 +313,11 @@ func _on_item_selected(item: ItemData):
 	next_turn()
 
 func _on_skill_selected(index: int):
-	player_use_skill(index, first_alive_enemy())
+	var skill = player_team[0].skills[index]
+	if skill.is_heal or skill.on_self: # no apuntan a un enemigo
+		player_use_skill(index, first_alive_enemy())
+	else:
+		_pick_target(func(t): player_use_skill(index, t))
 
 func _on_run_pressed():
 	if is_player_turn and is_battle_active:

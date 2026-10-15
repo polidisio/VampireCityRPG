@@ -245,7 +245,20 @@ func _show_info(v: bool) -> void:
 	$Panel/VBox.visible = v
 	log_label.visible = v
 
+func show_target_menu(targets: Array, on_pick: Callable):
+	_show_list(targets.map(func(t): return "%s %d/%d" % [t.character_name, t.hp, t.max_hp]), on_pick, [], func(i): _highlight(targets[i]))
+	_highlight(targets[0]) # el primer botón ya tiene el foco
+
+# Aclara el sprite del enemigo elegido (null: ninguno). Solo toca el color, no el alfa del desvanecido.
+func _highlight(target) -> void:
+	for c in enemy_team:
+		var spr = sprites.get(c)
+		if spr:
+			var v = 1.7 if c == target else 1.0
+			spr.modulate = Color(v, v, v, spr.modulate.a)
+
 func show_player_menu():
+	_highlight(null)
 	skill_menu.get_parent().visible = false
 	_show_info(true)
 	menu.visible = true
@@ -257,7 +270,7 @@ func show_skill_menu(skills: Array):
 func show_item_menu(items: Array):
 	_show_list(items.map(func(it): return it.name), func(i): item_selected.emit(items[i]))
 
-func _show_list(labels: Array, on_pick: Callable, icons: Array = []):
+func _show_list(labels: Array, on_pick: Callable, icons: Array = [], on_focus := Callable()):
 	for c in skill_menu.get_children():
 		c.queue_free()
 	var first: Button
@@ -268,7 +281,10 @@ func _show_list(labels: Array, on_pick: Callable, icons: Array = []):
 		if i < icons.size():
 			b.icon = icons[i]
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if on_focus.is_valid():
+			b.focus_entered.connect(on_focus.bind(i))
 		b.pressed.connect(func():
+			_highlight(null)
 			skill_menu.get_parent().visible = false
 			_show_info(true)
 			on_pick.call(i))
