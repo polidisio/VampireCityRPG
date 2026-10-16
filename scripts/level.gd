@@ -439,13 +439,17 @@ func _spawn_floor():
 		var group = _enemy_group()
 		var ga = _make_area(group[0].sprite_tile, 20, _free_pos(_roam_rect()), try_start_battle, "", group[0].texture(true))
 		ga.set_meta("enemies", group)
-		EnemyAI.new().setup(ga, self, 36.0)
+		EnemyAI.new().setup(ga, self, _chase_speed())
 	var boss = CharacterData.create_boss(floor_num)
 	_scale_enemy(boss, true)
 	var ba = _make_area(boss.sprite_tile, 32, _free_pos(Rect2(w * DOOR_FRAC + 8, 32, w * (1.0 - DOOR_FRAC) - 40, h - 64)), try_start_battle, "", boss.texture(true))
 	ba.set_meta("boss", true)
 	ba.set_meta("enemies", [boss])
 	_boss_presence(ba, boss)
+
+# Velocidad de persecución: lenta en el piso 1 (20 px/s, el jugador va a 60) y sube con la profundidad hasta un tope de 42.
+func _chase_speed() -> float:
+	return minf(20.0 + 1.5 * floor_num, 42.0)
 
 # Zona por la que se mueven los enemigos: antes del sello, lejos de los bordes.
 func enemy_bounds() -> Rect2:
@@ -507,7 +511,7 @@ func _spawn_elite() -> void:
 	var a = _make_area(e.sprite_tile, 24, _free_pos(_roam_rect(), start_pos, 160.0), try_start_battle, "", e.texture(true))
 	a.set_meta("enemies", [e])
 	a.set_meta("elite", true)
-	EnemyAI.new().setup(a, self, 26.0) # el élite es más lento
+	EnemyAI.new().setup(a, self, _chase_speed() * 0.75) # el élite es más lento
 	a.get_child(0).scale = Vector2.ONE * 1.25
 	a.add_child(_glow(Color(1, 0.8, 0.3), 46, 0.9))
 	var k = TextureRect.new()
