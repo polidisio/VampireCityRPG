@@ -1,7 +1,15 @@
 class_name Controls
 
 # Acciones propias (teclado + mando). Los menús usan ui_* (flechas/D-pad, A = aceptar, B = cancelar).
+static var _click_hooked := false
+
 static func setup() -> void:
+	if not _click_hooked:
+		_click_hooked = true
+		var tree := Engine.get_main_loop() as SceneTree
+		tree.node_added.connect(func(n: Node):
+			if n is BaseButton:
+				n.pressed.connect(func(): Sfx.play(tree.root, "click", -6.0)))
 	_add("interact", KEY_E, JOY_BUTTON_A)
 	_add("inventory", KEY_I, JOY_BUTTON_Y)
 	_add("hub", KEY_H, JOY_BUTTON_X)

@@ -779,6 +779,9 @@ func try_start_battle(enemy_node: Area2D):
 	var enemies: Array[CharacterData] = []
 	enemies.assign(enemy_node.get_meta("enemies"))
 	battle_system.floor_num = floor_num
+	if not enemy_node.has_meta("theme"): # el mismo enemigo siempre suena igual, aunque huyas y vuelvas
+		enemy_node.set_meta("theme", Music.pick("boss" if enemy_node.has_meta("boss") else "battle"))
+	battle_system.theme = enemy_node.get_meta("theme")
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	if enemy_node.has_meta("boss"):

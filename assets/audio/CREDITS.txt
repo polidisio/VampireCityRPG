@@ -7,3 +7,7 @@ key.mp3 "Key.wav" by MATRIXXX_ - CC0 - https://freesound.org/people/MATRIXXX_/so
 potion.mp3 "Potion - drink - swallow.wav" by ValentinPetiteau - CC0 - https://freesound.org/people/ValentinPetiteau/sounds/574077
 music/boss.mp3 "Skull Rock - Felipe RuizBRX11" by eitabyte (ruizbrx11) - CC BY 3.0 - https://www.jamendo.com/track/1594073
 music/deep.mp3 "Noturna Rock - Felipe RuizBRX11" by eitabyte (ruizbrx11) - CC BY 3.0 - https://www.jamendo.com/track/1594047
+step1.mp3 "concrete footstep 3" by Yoyodaman234 - CC0 - https://freesound.org/people/Yoyodaman234/sounds/166507
+step2.mp3 "concrete footstep 4" by Yoyodaman234 - CC0 - https://freesound.org/people/Yoyodaman234/sounds/166506
+step3.mp3 "concrete footstep 2" by Yoyodaman234 - CC0 - https://freesound.org/people/Yoyodaman234/sounds/166508
+click.mp3 "menu click" by Leszek_Szary - CC0 - https://freesound.org/people/Leszek_Szary/sounds/146720

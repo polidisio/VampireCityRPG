@@ -17,6 +17,7 @@ var player_inventory: Inventory
 var floor_num: int = 1 # lo fija el nivel; condiciona los drops
 const MP_REGEN = 3 # MP que recupera el jugador al inicio de cada uno de sus turnos
 var gold_mult: float = 1.0 # Codicia (altar); lo fija el nivel
+var theme := "battle" # pista de este combate (la fija el nivel por enemigo)
 var new_level: int = 0 # nivel alcanzado en el último combate ganado (0 = no subió)
 var enemy_delay: float = 1.0 # los tests de equilibrio lo ponen a 0
 
@@ -32,7 +33,7 @@ func _ready():
 		push_error("BattleSystem: UI no encontrada")
 
 func start_battle(player: CharacterData, enemies: Array[CharacterData], inventory: Inventory = null):
-	Music.play(self, "boss" if enemies[0].is_boss else "battle")
+	Music.play(self, theme)
 	player_inventory = inventory
 	player_team = [player]
 	player.statuses.clear()

@@ -4,3 +4,8 @@ explore.mp3 "The Falling of Freedom" by Viral Implications - https://www.jamendo
 battle.mp3  "Metallic People" by Andrey Avkhimovich - https://www.jamendo.com/track/1220589
 boss.mp3    "Skull Rock" by Felipe RuizBRX11 (eitabyte) - CC BY 3.0 - https://www.jamendo.com/track/1594073
 deep.mp3    "Noturna Rock" by Felipe RuizBRX11 (eitabyte) - CC BY 3.0 - https://www.jamendo.com/track/1594047
+battle2.mp3 "So Metal It Hurts" by Daniel Bautista - CC BY 3.0 - https://www.jamendo.com/track/1374950
+battle3.mp3 "U Metal 2 again" by Yonael - CC BY 3.0 - https://www.jamendo.com/track/1266512
+battle4.mp3 "Metal 8 notes" by Jamvortix - CC BY 3.0 - https://www.jamendo.com/track/1502327
+battle5.mp3 "Madhound" by ROZKOL - CC BY 3.0 - https://www.jamendo.com/track/1358933
+boss2.mp3 "Tidning" by CHASMA - CC BY 3.0 - https://www.jamendo.com/track/1884221
