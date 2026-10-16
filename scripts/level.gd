@@ -44,6 +44,7 @@ static var _glow_tex: GradientTexture2D
 
 func _ready():
 	Controls.setup()
+	Music.play(self, "explore")
 	battle_system.battle_ended.connect(_on_battle_ended)
 	battle_system.battle_fled.connect(_on_battle_fled)
 	var saved = SaveGame.load_game()
@@ -779,6 +780,7 @@ func try_start_battle(enemy_node: Area2D):
 	battle_system.start_battle(player.character_data, enemies, player_inventory)
 
 func _end_battle():
+	Music.play(self, "explore")
 	battle_system.ui.visible = false
 	busy = false
 	player.process_mode = Node.PROCESS_MODE_INHERIT

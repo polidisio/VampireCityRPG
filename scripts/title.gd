@@ -2,6 +2,7 @@ extends Control
 
 func _ready():
 	Controls.setup()
+	Music.play(self, "title")
 	var bg = ColorRect.new()
 	bg.color = Color(0.06, 0.04, 0.1)
 	add_child(bg)

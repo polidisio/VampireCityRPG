@@ -32,6 +32,7 @@ func _ready():
 		push_error("BattleSystem: UI no encontrada")
 
 func start_battle(player: CharacterData, enemies: Array[CharacterData], inventory: Inventory = null):
+	Music.play(self, "battle")
 	player_inventory = inventory
 	player_team = [player]
 	player.statuses.clear()
