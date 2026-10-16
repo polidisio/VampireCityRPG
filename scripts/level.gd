@@ -24,6 +24,7 @@ var floor_size := Vector2(320, 180)
 var start_pos := Vector2(160, 160)
 var hub_bg: TextureRect
 var blocked: Array[Rect2] = [] # paredes/pilares del piso actual (para no spawnear encima)
+var chase_grace_until := 0 # ms: tras un combate los enemigos no te persiguen un momento
 var ground: TextureRect
 var cam: Camera2D
 var floor_label: Label
@@ -436,13 +437,19 @@ func _spawn_floor():
 	_spawn_elite()
 	for n in randi_range(4, 7):
 		var group = _enemy_group()
-		_make_area(group[0].sprite_tile, 20, _free_pos(_roam_rect()), try_start_battle, "", group[0].texture(true)).set_meta("enemies", group)
+		var ga = _make_area(group[0].sprite_tile, 20, _free_pos(_roam_rect()), try_start_battle, "", group[0].texture(true))
+		ga.set_meta("enemies", group)
+		EnemyAI.new().setup(ga, self, 36.0)
 	var boss = CharacterData.create_boss(floor_num)
 	_scale_enemy(boss, true)
 	var ba = _make_area(boss.sprite_tile, 32, _free_pos(Rect2(w * DOOR_FRAC + 8, 32, w * (1.0 - DOOR_FRAC) - 40, h - 64)), try_start_battle, "", boss.texture(true))
 	ba.set_meta("boss", true)
 	ba.set_meta("enemies", [boss])
 	_boss_presence(ba, boss)
+
+# Zona por la que se mueven los enemigos: antes del sello, lejos de los bordes.
+func enemy_bounds() -> Rect2:
+	return Rect2(24, 24, floor_size.x * DOOR_FRAC - 16 - 24 - 14, floor_size.y - 48)
 
 # Dónde viven los enemigos, el élite y los eventos: antes de la puerta del sello.
 func _roam_rect() -> Rect2:
@@ -500,6 +507,7 @@ func _spawn_elite() -> void:
 	var a = _make_area(e.sprite_tile, 24, _free_pos(_roam_rect(), start_pos, 160.0), try_start_battle, "", e.texture(true))
 	a.set_meta("enemies", [e])
 	a.set_meta("elite", true)
+	EnemyAI.new().setup(a, self, 26.0) # el élite es más lento
 	a.get_child(0).scale = Vector2.ONE * 1.25
 	a.add_child(_glow(Color(1, 0.8, 0.3), 46, 0.9))
 	var k = TextureRect.new()
@@ -800,6 +808,7 @@ func try_start_battle(enemy_node: Area2D):
 	battle_system.start_battle(player.character_data, enemies, player_inventory)
 
 func _end_battle():
+	chase_grace_until = Time.get_ticks_msec() + 1500
 	_explore_music()
 	battle_system.ui.visible = false
 	busy = false
@@ -853,6 +862,7 @@ func _open_stairs(boss_pos: Vector2) -> void:
 
 func _on_battle_fled():
 	_end_battle()
+	chase_grace_until = Time.get_ticks_msec() + 3000 # huir da más ventaja
 	# ponytail: empuja al jugador fuera del enemigo para no re-disparar
 	player.move_and_collide((player.position - current_enemy.position).normalized() * 24)
 	_save()
