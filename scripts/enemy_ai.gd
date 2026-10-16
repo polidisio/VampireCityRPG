@@ -29,6 +29,8 @@ func setup(a: Area2D, lvl: Node, spd: float) -> void:
 	speed = spd * randf_range(0.85, 1.15)
 	_spr = a.get_child(0)
 	_shadow = _spr.get_node_or_null("Shadow")
+	_spr.material = ShaderMaterial.new()
+	_spr.material.shader = load("res://assets/walk.gdshader")
 	if _shadow:
 		_shadow_y = _shadow.position.y
 	_home = a.position
@@ -111,5 +113,7 @@ func _clamp(p: Vector2) -> Vector2:
 func _animate(moving: bool) -> void:
 	var hop := absf(sin(_t * _hop_rate)) * _hop_h if moving else 0.0
 	_spr.position.y = -roundf(hop)
+	_spr.material.set_shader_parameter("walk", 1.0 if moving else 0.0)
+	_spr.material.set_shader_parameter("phase", _t * _hop_rate)
 	if _shadow:
 		_shadow.position.y = _shadow_y + roundf(hop)

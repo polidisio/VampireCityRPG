@@ -15,6 +15,8 @@ var direction: Vector2 = Vector2.DOWN
 func _ready():
 	collision_mask = 3 # capa 1: muros; capa 2: NPCs
 	Shadow.attach(sprite)
+	sprite.material = ShaderMaterial.new()
+	sprite.material.shader = load("res://assets/walk.gdshader")
 	position = Vector2(160, 100)
 	update_sprite()
 
@@ -65,6 +67,8 @@ func _animate(delta: float) -> void:
 		sprite.scale = Vector2(0.86, 1.14) if moving else Vector2(1.12, 0.9)
 		_squash = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_squash.tween_property(sprite, "scale", Vector2.ONE, 0.16)
+	sprite.material.set_shader_parameter("walk", 1.0 if moving else 0.0)
+	sprite.material.set_shader_parameter("phase", _t * 14.0)
 	sprite.rotation = lerpf(sprite.rotation, direction.x * 0.09 if moving else 0.0, minf(1.0, 14.0 * delta)) # se inclina hacia donde va
 	var hop = absf(sin(_t * 14.0)) * 2.0 if velocity != Vector2.ZERO else (1.0 if fmod(_t, 1.4) < 0.7 else 0.0)
 	sprite.position.y = -3.0 - roundf(hop)
