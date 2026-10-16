@@ -803,6 +803,13 @@ func try_start_battle(enemy_node: Area2D):
 	battle_system.ui.set_backdrop(_battle_backdrop())
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
+	if enemy_node.has_node("EnemyAI"): # embestida antes del combate
+		var spr = enemy_node.get_child(0)
+		var base = spr.position
+		var lunge = create_tween()
+		lunge.tween_property(spr, "position", base + (player.position - enemy_node.position).normalized() * 8.0, 0.09)
+		lunge.tween_property(spr, "position", base, 0.09)
+		await lunge.finished
 	if enemy_node.has_meta("boss"):
 		await _boss_intro(enemies[0])
 	battle_system.start_battle(player.character_data, enemies, player_inventory)
