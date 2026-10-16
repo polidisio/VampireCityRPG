@@ -295,10 +295,14 @@ func _go_floor(n: int):
 	if record:
 		gained = _gain_essence(ESSENCE_RECORD)
 		meta.streak = 0
+	busy = true # la física aún tiene al jugador en su sitio antiguo: sin esto, un enemigo nuevo que solape ahí inicia combate al llegar
 	_spawn_floor()
 	if record:
 		_note("Piso récord: +%d Esencia" % gained)
 	_save()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	busy = false
 
 func _add_block(r: Rect2, tex: Texture2D, tiled := true):
 	var b = StaticBody2D.new()
@@ -812,18 +816,17 @@ func _on_battle_ended(victory: bool):
 			meta.streak = 0
 		if current_enemy.has_meta("boss"):
 			quests.add("boss")
-			# cerca del jefe pero a >=32px del jugador (está pegado al jefe) para no activar las escaleras al instante
-			var near = Rect2(current_enemy.position - Vector2(48, 48), Vector2(96, 96)).intersection(Rect2(32, 32, floor_size.x - 64, floor_size.y - 64))
-			var pos = _free_pos(near, player.position, 32.0)
-			_make_area(45, 16, pos, func(_a): _go_floor(floor_num + 1))
 			msg.text = "¡Jefe derrotado! Baja por las escaleras (+%d Esencia)" % gain
 		var boss = current_enemy.has_meta("boss")
+		var boss_pos = current_enemy.position
 		if current_enemy.has_meta("elite"):
 			_break_seal()
 		_remove_obj(current_enemy)
 		if boss:
 			await _pick_relic()
 		await _spend_picks()
+		if boss: # las escaleras salen cuando ya no hay menús abiertos
+			_open_stairs(boss_pos)
 		_save()
 	else:
 		await _end_run()
@@ -840,6 +843,13 @@ func _end_run() -> void:
 	player_inventory.items.clear()
 	SaveGame.save(null, player_inventory, 0, max_floor, quests, 0, meta)
 	get_tree().reload_current_scene()
+
+# Escaleras al piso siguiente: cerca del jefe caído pero a >=32px del jugador, para no activarlas al instante.
+func _open_stairs(boss_pos: Vector2) -> void:
+	var near = Rect2(boss_pos - Vector2(48, 48), Vector2(96, 96)).intersection(Rect2(32, 32, floor_size.x - 64, floor_size.y - 64))
+	var stairs = _make_area(45, 16, _free_pos(near, player.position, 32.0), func(_a): _go_floor(floor_num + 1))
+	stairs.modulate.a = 0.0 # el hueco se abre en el suelo
+	stairs.create_tween().tween_property(stairs, "modulate:a", 1.0, 0.8)
 
 func _on_battle_fled():
 	_end_battle()
