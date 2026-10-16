@@ -4,9 +4,9 @@ class_name Controls
 static var _click_hooked := false
 
 static func setup() -> void:
-	if not _click_hooked:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree and not _click_hooked: # sin árbol aún (tests en _init): se engancha en la siguiente llamada
 		_click_hooked = true
-		var tree := Engine.get_main_loop() as SceneTree
 		tree.node_added.connect(func(n: Node):
 			if n is BaseButton:
 				n.pressed.connect(func(): Sfx.play(tree.root, "click", -6.0)))

@@ -68,9 +68,26 @@ func _ready():
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Panel.add_child(log_label)
 
+func _apply_button_style(key: String) -> void: # A hierro / B sangre / C hueso, fijo por enemigo
+	var v = "abc"[key.md5_buffer()[0] % 3]
+	var th = Theme.new()
+	for st in ["normal", "hover", "pressed"]:
+		var sb = StyleBoxTexture.new()
+		sb.texture = load("res://assets/ui/btn_%s_%s.png" % [v, st])
+		sb.set_texture_margin_all(5)
+		sb.content_margin_left = 7
+		sb.content_margin_right = 7
+		sb.content_margin_top = 3
+		sb.content_margin_bottom = 3
+		th.set_stylebox(st, "Button", sb)
+	th.set_stylebox("focus", "Button", th.get_stylebox("hover", "Button"))
+	th.set_stylebox("disabled", "Button", th.get_stylebox("normal", "Button"))
+	theme = th
+
 func setup_battle(player_team_ref: Array[CharacterData], enemy_team_ref: Array[CharacterData]):
 	player_char = player_team_ref[0]
 	enemy_team = enemy_team_ref
+	_apply_button_style(enemy_team_ref[0].character_name)
 	log_lines.clear()
 	log_label.text = ""
 	_build_stage()

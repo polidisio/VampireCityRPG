@@ -1,9 +1,9 @@
 [gd_resource type="Theme" load_steps=10 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/Jersey10.ttf" id="1_font"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_normal.png" id="t_n"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_hover.png" id="t_h"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_pressed.png" id="t_p"]
+[ext_resource type="Texture2D" path="res://assets/ui/btn_a_normal.png" id="t_n"]
+[ext_resource type="Texture2D" path="res://assets/ui/btn_a_hover.png" id="t_h"]
+[ext_resource type="Texture2D" path="res://assets/ui/btn_a_pressed.png" id="t_p"]
 
 [sub_resource type="StyleBoxFlat" id="panel"]
 bg_color = Color(0.09, 0.07, 0.13, 1)
@@ -15,36 +15,36 @@ border_color = Color(0.55, 0.15, 0.2, 1)
 
 [sub_resource type="StyleBoxTexture" id="btn"]
 texture = ExtResource("t_n")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-content_margin_left = 5.0
-content_margin_top = 2.0
-content_margin_right = 5.0
-content_margin_bottom = 2.0
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxTexture" id="btn_hover"]
 texture = ExtResource("t_h")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-content_margin_left = 5.0
-content_margin_top = 2.0
-content_margin_right = 5.0
-content_margin_bottom = 2.0
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxTexture" id="btn_pressed"]
 texture = ExtResource("t_p")
-texture_margin_left = 3.0
-texture_margin_top = 3.0
-texture_margin_right = 3.0
-texture_margin_bottom = 3.0
-content_margin_left = 5.0
-content_margin_top = 2.0
-content_margin_right = 5.0
-content_margin_bottom = 2.0
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 
 [resource]
 default_font = ExtResource("1_font")
