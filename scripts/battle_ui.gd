@@ -19,6 +19,10 @@ var incoming_row: HBoxContainer # daño total que recibirá el jugador
 var player_hp_bar: Bar
 var player_mp_bar: Bar
 var enemy_team: Array = []
+var backdrop: TextureRect
+
+func set_backdrop(tex: Texture2D) -> void:
+	backdrop.texture = tex
 
 func _ready():
 	var bg = ColorRect.new()
@@ -27,9 +31,16 @@ func _ready():
 	add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	move_child(bg, 0) # detrás del Panel
+	backdrop = TextureRect.new()
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	add_child(backdrop)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(backdrop, 1)
 	stage = Node2D.new()
 	add_child(stage)
-	move_child(stage, 1)
+	move_child(stage, 2) # sobre el fondo
 	var scroll = ScrollContainer.new()
 	scroll.visible = false
 	$Panel.add_child(scroll)

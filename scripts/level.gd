@@ -379,6 +379,12 @@ func _free_pos(area: Rect2, avoid: Vector2 = start_pos, min_dist: float = 100.0)
 			break
 	return p
 
+# Un fondo al azar del tema del piso (un tema por bloque de 5 pisos, igual que FLOORS). El hub usa cualquiera.
+const BACKDROPS = [5, 6, 6, 5, 6] # fondos por tema en assets/backgrounds/<tema>_<n>.png
+func _battle_backdrop() -> Texture2D:
+	var theme = ((floor_num - 1) / 5) % BACKDROPS.size() if floor_num > 0 else randi() % BACKDROPS.size()
+	return load("res://assets/backgrounds/%d_%d.png" % [theme, randi() % BACKDROPS[theme]])
+
 # Hub y pisos 1-5: tema de exploración; del piso 6 en adelante, el tema profundo.
 func _explore_music() -> void:
 	Music.play(self, "deep" if floor_num >= 6 else "explore")
@@ -782,6 +788,7 @@ func try_start_battle(enemy_node: Area2D):
 	if not enemy_node.has_meta("theme"): # el mismo enemigo siempre suena igual, aunque huyas y vuelvas
 		enemy_node.set_meta("theme", Music.pick("boss" if enemy_node.has_meta("boss") else "battle"))
 	battle_system.theme = enemy_node.get_meta("theme")
+	battle_system.ui.set_backdrop(_battle_backdrop())
 	busy = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	if enemy_node.has_meta("boss"):
