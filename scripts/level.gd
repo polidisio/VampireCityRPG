@@ -44,7 +44,6 @@ static var _glow_tex: GradientTexture2D
 
 func _ready():
 	Controls.setup()
-	Music.play(self, "explore")
 	battle_system.battle_ended.connect(_on_battle_ended)
 	battle_system.battle_fled.connect(_on_battle_fled)
 	var saved = SaveGame.load_game()
@@ -380,7 +379,12 @@ func _free_pos(area: Rect2, avoid: Vector2 = start_pos, min_dist: float = 100.0)
 			break
 	return p
 
+# Hub y pisos 1-5: tema de exploración; del piso 6 en adelante, el tema profundo.
+func _explore_music() -> void:
+	Music.play(self, "deep" if floor_num >= 6 else "explore")
+
 func _spawn_floor():
+	_explore_music()
 	blocked.clear()
 	event_spots.clear()
 	has_key = false
@@ -499,6 +503,7 @@ func _spawn_elite() -> void:
 		tw.tween_property(k, "position:y", -34.0, 0.5))
 
 func _break_seal() -> void:
+	Sfx.play(self, "key")
 	has_key = true
 	if is_instance_valid(door):
 		door.queue_free()
@@ -533,6 +538,7 @@ func _boss_presence(ba: Area2D, boss: CharacterData) -> void:
 # Tarjeta de entrada del jefe: "PISO N / NOMBRE".
 func _boss_intro(boss: CharacterData) -> void:
 	Sfx.play(self, "door")
+	Sfx.play(self, "roar")
 	var layer = CanvasLayer.new()
 	layer.layer = 8
 	var bg = ColorRect.new()
@@ -780,7 +786,7 @@ func try_start_battle(enemy_node: Area2D):
 	battle_system.start_battle(player.character_data, enemies, player_inventory)
 
 func _end_battle():
-	Music.play(self, "explore")
+	_explore_music()
 	battle_system.ui.visible = false
 	busy = false
 	player.process_mode = Node.PROCESS_MODE_INHERIT

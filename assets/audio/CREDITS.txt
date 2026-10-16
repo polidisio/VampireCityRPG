@@ -1,0 +1,9 @@
+Sound effects (CC0) and music via Openverse. Kenney files: see assets/LICENSE-kenney.txt
+sword_hit.mp3 "Sword hits the body.wav" by vdovitsky - CC0 - https://freesound.org/people/vdovitsky/sounds/411122
+hurt_grunt.mp3 "male_hurt12.ogg" by micahlg - CC0 - https://freesound.org/people/micahlg/sounds/413173
+monster_roar.mp3 "Monster Roar" by NicknameLarry - CC0 - https://freesound.org/people/NicknameLarry/sounds/487513
+level_up.mp3 "LEVEL UP SFX 1" by trader_one - CC0 - https://freesound.org/people/trader_one/sounds/709927
+key.mp3 "Key.wav" by MATRIXXX_ - CC0 - https://freesound.org/people/MATRIXXX_/sounds/459694
+potion.mp3 "Potion - drink - swallow.wav" by ValentinPetiteau - CC0 - https://freesound.org/people/ValentinPetiteau/sounds/574077
+music/boss.mp3 "Skull Rock - Felipe RuizBRX11" by eitabyte (ruizbrx11) - CC BY 3.0 - https://www.jamendo.com/track/1594073
+music/deep.mp3 "Noturna Rock - Felipe RuizBRX11" by eitabyte (ruizbrx11) - CC BY 3.0 - https://www.jamendo.com/track/1594047

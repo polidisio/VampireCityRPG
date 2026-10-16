@@ -32,7 +32,7 @@ func _ready():
 		push_error("BattleSystem: UI no encontrada")
 
 func start_battle(player: CharacterData, enemies: Array[CharacterData], inventory: Inventory = null):
-	Music.play(self, "battle")
+	Music.play(self, "boss" if enemies[0].is_boss else "battle")
 	player_inventory = inventory
 	player_team = [player]
 	player.statuses.clear()
@@ -120,7 +120,7 @@ func player_attack(target_index: int):
 	var target = enemy_team[target_index]
 	
 	var actual_damage = target.take_damage(_power(attacker, attacker.attack))
-	Sfx.play(self, "hit")
+	Sfx.play(self, "sword")
 	ui.animate_attack(attacker, target)
 	ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
 	_on_player_hit(attacker, target)
@@ -163,7 +163,7 @@ func enemy_turn():
 		_use_skill(enemy, skill, target)
 	else:
 		var actual_damage = target.take_damage(_power(enemy, enemy.attack))
-		Sfx.play(self, "hurt")
+		Sfx.play(self, "grunt")
 		ui.animate_attack(enemy, target)
 		ui.float_text(target, "-%d" % actual_damage, Color(1, 0.45, 0.45))
 	plan_intent(enemy)
@@ -275,10 +275,11 @@ func check_battle_end():
 		var level_before = pc.level
 		pc.add_exp(exp_gained)
 		ui.add_log("¡Victoria! +%d EXP" % exp_gained)
-		if pc.level > level_before:
+		var leveled = pc.level > level_before
+		if leveled:
 			new_level = pc.level
 			ui.add_log("¡Nivel %d!" % pc.level)
-		Sfx.play(self, "victory")
+		Sfx.play(self, "levelup" if leveled else "victory")
 		
 		if player_inventory != null:
 			var drops = generate_drops()
@@ -336,6 +337,8 @@ func _on_item_selected(item: ItemData):
 	if not (is_player_turn and is_battle_active):
 		return
 	player_team[0].use_item(item)
+	if item.hp_restore > 0 or item.mp_restore > 0:
+		Sfx.play(self, "potion")
 	if item.hp_restore > 0:
 		ui.float_text(player_team[0], "+%d" % item.hp_restore, Color(0.5, 1, 0.6))
 	if item.mp_restore > 0:
