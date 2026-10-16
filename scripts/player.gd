@@ -39,7 +39,7 @@ func _physics_process(delta):
 		_step_t += delta
 		if _step_t >= 0.3:
 			_step_t = 0.0
-			Sfx.play(self, "step%d" % randi_range(1, 3), -10.0)
+			Sfx.play(self, "step%d" % randi_range(1, 3), -4.0)
 		if absf(direction.x) > 0.3:
 			var faces_right = character_data != null and character_data.art_faces_right
 			sprite.flip_h = (direction.x > 0) != faces_right # el arte suele mirar a la izquierda (se voltea al ir a la derecha); el de la Dhampir, al revés
