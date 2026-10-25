@@ -1,246 +1,235 @@
 # Code Review Report: VampireCityRPG
-Generated: 2026-10-25T00:29:55.161957
+Generated: 2026-10-26T00:21:48.241632
 
-I have a complete picture of the codebase now. Here is the review.
+I have a complete picture. Here's my review.
 
 ---
 
 # Code Review — VampireCityRPG
 
-**Scope:** `scripts/` (28 files), `tests/` (14 files), `tools/` (3 Python scripts) — ~4,500 lines. Assets/binary files excluded.
+**Scope:** `scripts/` (28 files, ~2,900 lines), `tests/` (14 files), `tools/` (3 Python) — read from git `HEAD`.
 
-**Overall:** This is clean, well-organized code for a game of this size. The architecture is coherent (data objects → systems → UI), asset paths all resolve, there is no `eval`, no network I/O, no shell-out, no untrusted input, and no credential handling — **there are no security vulnerabilities**. The defects below are correctness and maintainability issues, not exploits.
+> ⚠️ **Working tree note:** every tracked file is currently deleted from the working directory (`git status` shows ` D` for the whole repo) while `scripts/`, `tests/`, `tools/` exist as empty directories. I reviewed the code at `HEAD` without modifying the tree. If this deletion is unintentional, `git restore .` recovers it.
+
+**Overall:** This is clean, well-factored game code — clear separation of data (`CharacterData`/`ItemData`/`Pacts`) from systems (`BattleSystem`, `level.gd`) from UI, consistent naming, no `eval`, no network/shell-out, no credential handling, and no untrusted input. **There are no security vulnerabilities.** The issues below are correctness, robustness and maintainability.
 
 ---
 
 ## 1. CRITICAL (must fix)
 
-### C1 — Save file can be truncated with no recovery, losing the meta-progress permanently
-`scripts/save_game.gd:19-20`
+### C1 — A failed save write silently destroys all meta-progress
+**`scripts/save_game.gd:19-20`**
 
 ```gdscript
 var f = FileAccess.open(PATH, FileAccess.WRITE)
 f.store_string(JSON.stringify(d))
 ```
 
-Two problems:
-- `FileAccess.open` returns **null** on failure (read-only `user://`, disk full, permissions). `f.store_string` on null is a hard runtime error, and the crash happens *during* `JSON.stringify` evaluation's consumer — the file is already truncated to zero length at that point.
-- The write is **not atomic**. If the process is killed mid-`store_string`, `save.json` is a partial JSON string. `load_game()` then hits `typeof(d) != TYPE_DICTIONARY` and returns `[]` — and `level.gd:59` treats that as "no run", which means `meta` (essence, altar levels) and `quests` are gone too, with no way to recover.
+Two compounding defects:
 
-**Fix:**
+1. **`FileAccess.open` returns `null` on failure** (disk full, permissions, read-only `user://`). `f.store_string` on `null` is a hard runtime error — and the file has *already* been truncated to zero bytes by then.
+2. **The write is not atomic.** `FileAccess.open(..., WRITE)` truncates the target immediately. If the process is killed mid-`store_string` (alt-tab, crash, OS shutdown), `save.json` is a partial or empty JSON string.
+
+The consequence is severe: `load_game()` (`save_game.gd:26-28`) returns `[]` for any non-dictionary payload, and `level.gd:59` reads that as *"no save exists"* → `_show_class_select()`. The player's **Essencia, altar levels, streak, and quests are gone with no recovery path** — not just the run.
+
+**Fix** — write to a temp file and rename (atomic on POSIX), and never touch the live file unless the write succeeded:
+
 ```gdscript
 var f := FileAccess.open(PATH + ".tmp", FileAccess.WRITE)
 if f == null:
-    push_error("SaveGame: no se pudo escribir el guardado (%s)" % error_string(FileAccess.get_open_error()))
+    push_error("SaveGame: no se pudo escribir (%s)" % error_string(FileAccess.get_open_error()))
     return
 f.store_string(JSON.stringify(d))
 f.close()
-var da := DirAccess.open("user://")
-if da.rename(PATH + ".tmp", PATH) != OK:
-    push_error("SaveGame: no se pudo renombrar el guardado temporal")
+if DirAccess.rename_absolute(PATH + ".tmp", PATH) != OK:
+    push_error("SaveGame: no se pudo renombrar el temporal")
 ```
+
+Also keep a `save.json.bak` and fall back to it in `load_game()` when the primary file fails to parse. Consider writing every N seconds rather than only at commit points (`level.gd:_save()` is called on menu close and floor change — a crash mid-run loses the whole run).
 
 ---
 
 ## 2. HIGH (should fix)
 
-### H1 — `busy` is a single global modal flag with no owner tracking; a missed `closed` signal softlocks the game
-`scripts/level.gd:103, 170, 182, 675, 689, 744` (set) and `:140, 175, 188, 681, 694, 751` (reset)
-
-`busy` is set to `true` in seven places and reset only in the corresponding `closed`/`resumed` signal callbacks. If any of those menus is freed without emitting its signal (scene reload during `_end_run` → `get_tree().reload_current_scene()` at `level.gd:865` while a menu is open; or a node freed by `_clear_floor`), `busy` stays `true` forever, and because `level.gd:156` returns early on `busy`, **the player can no longer interact, open the inventory, or pause — a permanent softlock with no way out except restarting.**
-
-**Fix:** use a counter instead of a bool, or set `busy = false` in `_exit_tree()` of the level and in a `NOTIFICATION_WM_CLOSE_REQUEST`/`_notification(NOTIFICATION_PREDELETE)` hook. A minimal robust change:
-```gdscript
-# en level.gd
-func _exit_tree() -> void:
-    busy = false
-```
-plus, in `_end_run`, `busy = false` before `reload_current_scene()`.
-
-### H2 — `_note()`'s timer callback touches a freed node after every scene transition
-`scripts/level.gd:720-724`
+### H1 — "Nueva partida" can silently fail to delete the old save
+**`scripts/title.gd:41`**
 
 ```gdscript
-msg.text = text
-get_tree().create_timer(3.0).timeout.connect(func():
-    if msg.text == text:
-        msg.text = "")
+DirAccess.remove_absolute(SaveGame.PATH)
+_start()
 ```
 
-The `SceneTreeTimer` is owned by the tree, not by the level. The lambda captures `self` and `msg`. If the level is freed within those 3 seconds — which happens on **every death** (`_end_run` → `reload_current_scene()`) and on **every "Menú principal"** (`pause_menu` → `change_scene_to_file`) — the timer fires on a freed `Node` and raises *"Attempt to call function on a previously freed instance"*. Notes are emitted constantly (every essence gain, every floor, every pickup), so this fires reliably.
+The return code is ignored. If the delete fails (file locked, permission), the player clicks "Nueva partida", the title screen advances, and `level.gd:_ready` → `SaveGame.load_game()` loads the **old run** — the player silently continues the previous character after being told everything was wiped.
 
-**Fix:** disconnect the timer on exit, or guard:
+Compounding it, the confirmation is implemented by mutating the button's text (line 39). The confirmation state is never reset, so if the player clicks "Nueva partida" once, wanders off, and clicks it again later, the save is deleted with no confirmation.
+
+**Fix:** check the error code and abort the transition on failure; use a boolean `confirming` flag reset on focus change rather than comparing button text.
+
+### H2 — Failing tests hang the run instead of failing it
+**`tests/*.gd` (13 of 14 files)**
+
+`assert()` in GDScript halts execution of the enclosing function on failure but does **not** set a non-zero exit code. In `tests/test_run.gd`, `test_meta.gd`, `test_pacts.gd`, `test_intents.gd`, etc., a failed assertion aborts `_init()` *before* the final `quit()` — the headless SceneTree then runs forever with no output. The CI exit code stays `0`.
+
+`tests/test_flow.gd` already demonstrates the correct pattern (a local `fail()` helper that prints and calls `quit(1)`), and `test_inventory_relics.gd` uses `quit(0 if found else 1)`. The other 13 files should be converted to the same shape.
+
+Related: **`.github/` contains only `CODE_REVIEW_REPORT.md` — there is no CI workflow**, so nothing runs these tests automatically. A test harness is worth adding.
+
+### H3 — `_free_pos` can place enemies inside walls or on top of the player
+**`scripts/level.gd:379-385`**
+
 ```gdscript
-get_tree().create_timer(3.0).timeout.connect(func():
-    if is_instance_valid(self) and is_instance_valid(msg) and msg.text == text:
-        msg.text = "")
+for i in 60:
+    p = Vector2(randf_range(...), randf_range(...))
+    if p.distance_to(avoid) >= min_dist and not blocked.any(...) and not event_spots.any(...):
+        break
+return p
 ```
 
-### H3 — `current_enemy` is dereferenced without a null check on the battle-end path
-`scripts/level.gd:833, 835, 837, 840-841, 878`
+If no candidate satisfies the constraints in 60 tries, the function returns the **last random candidate** — which may be inside a wall block or on the player's start position. The elite in particular is placed with `min_dist = 160` (`level.gd:511`), which is hard to satisfy in a 640×360 room, so this fallback is reachable in practice.
 
-`_on_battle_ended` uses `current_enemy.has_meta("boss")` and `current_enemy.position`; `_on_battle_fled` uses `current_enemy.position`. `current_enemy` is only ever assigned in `try_start_battle` (`level.gd:800`), and is never cleared. It is `null` before the first battle and after a scene reload, so any battle lifecycle path that fires `battle_ended` without going through `try_start_battle` (e.g. `battle_system.start_battle` called directly, as `tests/test_flow.gd:92` does) crashes with a null-instance error.
+**Fix:** track whether a valid point was found and, if not, fall back to a known-safe anchor (e.g. the room center) rather than the last rejected sample. `test_floor_reachability.gd` does a flood-fill check, but only over `floor_obj` positions, so it would not catch an enemy spawned inside a wall.
 
-**Fix:** `if current_enemy == null or not is_instance_valid(current_enemy): return` at the top of `_on_battle_ended` and `_on_battle_fled`.
+### H4 — `null` dereferences on `ui` and `current_enemy` are only partially guarded
+**`scripts/battle_system.gd:85, 94, 169, 218, 221, 238` and `scripts/level.gd:807, 833-843`**
 
-### H4 — Enemy collision avoidance runs an O(n) scan per axis per frame, per enemy
-`scripts/enemy_ai.gd:106-107`
+`BattleSystem._ready` logs `"BattleSystem: UI no encontrada"` and leaves `ui` as `null` (`battle_system.gd:32-33`). Some call sites check (`start_battle` line 51, `player_attack` line 128), but many do not — `next_turn` calls `ui.float_text(...)` and `ui.update_stats()` unconditionally at lines 85-94, and `_use_skill` calls `ui.float_text` at line 221. A missing `$BattleUI` therefore produces a null-instance crash in the middle of a battle instead of the intended clean error.
+
+Similarly, `level.gd:_on_battle_ended` dereferences `current_enemy` (lines 833-843) with no null check. `current_enemy` is only assigned inside `try_start_battle`; any battle started directly through `battle_system.start_battle` (as several tests do) leaves it `null` → "Invalid get index 'has_meta' on a null instance".
+
+**Fix:** either fail fast in `_ready` (`assert(ui != null)` / `push_error` + `set_process(false)`) or guard every call site. Add `if current_enemy == null: return` at the top of `_on_battle_ended`.
+
+### H5 — The "Ayuno" pact is exploitable outside combat
+**`scripts/battle_system.gd:328` vs `scripts/inventory_menu.gd:66-69`**
+
+Ayuno ("Sin objetos: ni usarlos ni llevarlos") is enforced only in the battle item menu. The field inventory menu still allows consuming potions freely:
+
+```gdscript
+func _on_item(item: ItemData):
+    if item.type == ItemData.ItemType.CONSUMABLE:
+        character.use_item(item)   # <- no pact check
+```
+
+Since Ayuno also grants an essence bonus (`Pacts.PACTS`), a player can take the pact, loot potions, and drink them in the field. **Fix:** check `character.pacts.has("ayuno")` in `InventoryMenu._on_item` and reject consumables the same way `BattleSystem._on_item_pressed` does.
+
+---
+
+## 3. MEDIUM (consider fixing)
+
+### M1 — `ItemData.find_by_id` rebuilds the entire item catalogue on every call
+**`scripts/item_data.gd:122-127`**
+
+```gdscript
+static func find_by_id(item_id: String) -> ItemData:
+    for list in [get_all_weapons(), get_all_armors(), get_all_accessories(), get_all_consumables()]:
+```
+
+Each of the four getters allocates a fresh set of `ItemData` objects, so one lookup constructs **28 throwaway objects**. This is on the hot path: every shop purchase (`shop_menu.gd:81`), every save load (`save_game.gd:51-53`, once per item), every quest claim, and `generate_drops` on every battle victory (`battle_system.gd:369`).
+
+**Fix:** build the catalogue once into a `static var _by_id: Dictionary` and return from it. This also fixes a subtle identity problem — `shop_menu._buy` adds `find_by_id(item.id)` (a *different* instance from the one in `stock()`), so `Inventory.has_item()` (reference comparison) would return `false` for it.
+
+### M2 — `level.gd` is 879 lines with five distinct responsibilities
+**`scripts/level.gd`**
+
+Floor generation (`_build_walls`, `_spawn_floor`, `_free_pos`), combat orchestration (`try_start_battle`, `_on_battle_ended`), meta progression (`_gain_essence`, `_refresh_modifiers`), NPC dialogue (`_say`, `_talk`, `_claim`, `_rest`), and UI construction (`_show_class_select`, `_boss_intro`) all live in one file, with `_on_battle_ended` alone coordinating six subsystems.
+
+**Fix:** extract at least `FloorBuilder` (generation + placement) and `RunFlow`/`MetaService` (essence, altar, run lifecycle). The `_choose`/`_open_dialog` pattern is already a good seam — the meta logic can move behind it.
+
+### M3 — `battle_system.gd` claims multi-player support but hardcodes `player_team[0]` everywhere
+**`scripts/battle_system.gd` (lines 120, 139, 160, 275, 299, 303, 307, 340-346) vs. the loops at lines 246, 265**
+
+`player_team` is typed `Array[CharacterData]` and `check_battle_end` iterates it with `for p in player_team`, implying multiple party members — but every action path hardcodes index `0`. `damage_vs`, `single_target`, `incoming_damage` and all of `battle_ui` assume a single player.
+
+**Fix:** either collapse to a single `player: CharacterData` field (honest about the design) or complete the multi-player support. The current state will mislead anyone extending it.
+
+### M4 — Stale `nearby` interaction state with overlapping NPCs
+**`scripts/level.gd:256-262`**
+
+```gdscript
+a.body_entered.connect(func(_b): nearby = on_enter; lbl.visible = true)
+a.body_exited.connect(func(_b):
+    if nearby == on_enter: nearby = Callable()
+    lbl.visible = false)
+```
+
+With two NPCs in range, exiting one clears `nearby` (if it happened to be the active one) and hides that NPC's label while the other remains overlapped — leaving the player unable to interact with the NPC they are standing on. **Fix:** track a set of nearby interactables and resolve the active one by distance.
+
+### M5 — `current_enemy` is not cleared when the floor is cleared
+**`scripts/level.gd:282-286`**
+
+`_clear_floor()` frees every `floor_obj` but leaves `current_enemy` pointing at a queued-for-deletion node. Any later access (`_on_battle_ended`, `_on_battle_fled` at line 878) touches a freed instance. It happens to be reassigned by `try_start_battle` before each fight, but the invariant is fragile. **Fix:** set `current_enemy = null` in `_clear_floor`.
+
+### M6 — Enemy AI does an O(n) `Rect2.grow()` scan every physics frame
+**`scripts/enemy_ai.gd:106-107`**
 
 ```gdscript
 func _free(p: Vector2) -> bool:
     return level.enemy_bounds().has_point(p) and not level.blocked.any(func(r): return r.grow(8).has_point(p))
 ```
 
-`blocked` holds up to ~45 rects (`level.gd:329`). `_step` calls `_free` twice per axis per enemy, and there are up to 8 enemies at 60 Hz → ~43,000 `Rect2.grow().has_point()` allocations + calls per second. `grow(8)` allocates a new `Rect2` on every invocation.
+`level.blocked` holds ~45 `Rect2`s. This runs per enemy, per axis, per frame (2 axes × 60 fps × ~8 enemies × 45 rects ≈ **43k `Rect2.grow()` allocations per second**, each allocating a new `Rect2`). **Fix:** precompute the grown rects once per floor (e.g. store `blocked_grown` alongside `blocked`) and use `Rect2.has_point` on the precomputed values.
 
-**Fix:** precompute a grown list once per floor (`blocked_grown`) in `_spawn_floor`, or better, build a coarse grid (e.g. 16 px cells) mapping to blocked flags and look up in O(1).
-
-### H5 — `save_game.gd` silently accepts unknown equipment slots from the file
-`scripts/save_game.gd:50-51`
+### M7 — `CharacterData.equip()` raises a `KeyError` on a consumable
+**`scripts/character_data.gd:185-187`**
 
 ```gdscript
-for slot in d.get("equipment", {}):
-    c.equipment[slot] = ItemData.find_by_id(d.equipment[slot])
+var slot = {ItemData.ItemType.WEAPON: "weapon", ...}[item.type]
 ```
 
-The loop iterates the *file's* keys, not the known slots. A hand-edited or partially-written save containing `"helmet": "x"` inserts a bogus key into `c.equipment`. `CharacterData.equip()` (`character_data.gd:186-194`) then looks up slots by name, so it is not directly exploitable, but `save_game.gd:18` iterates `c.equipment` and writes it back out — the bogus key **persists across save/load cycles**.
+`equip` is a public method with no type guard; passing a `CONSUMABLE` aborts with a dict-key error. Both call sites (`inventory_menu.gd:70`, `sim_balance.gd:144`) filter by type first, but the method itself should be defensive. **Fix:** return `null` (or `push_error`) for unsupported types.
 
-**Fix:** iterate the known slots and ignore unknown ones:
-```gdscript
-for slot in ["weapon", "armor", "accessory"]:
-    var id = d.get("equipment", {}).get(slot, "")
-    if id != "":
-        c.equipment[slot] = ItemData.find_by_id(id)
+### M8 — Unchecked array indexing on skill/target selection
+**`scripts/battle_system.gd:140, 357` and `scripts/battle_ui.gd:278-279`**
+
+`player_team[0].skills[skill_index]` and `enemy_team[target_index]` are indexed without bounds checks. `_on_skill_selected` passes `first_alive_enemy()`, which returns **`-1`** when no enemy is alive; GDScript treats a negative index as a wrap-around, so `enemy_team[-1]` silently targets the *last* enemy rather than erroring. Currently harmless (a heal skill ignores its target, and the battle would already have ended), but the failure mode is silent and wrong rather than loud. **Fix:** guard with an explicit bounds/emptiness check.
+
+### M9 — `battle_ui._build_stage` frees sprites with `queue_free` but keeps using them for one frame
+**`scripts/battle_ui.gd:156-175`**
+
+Old sprites remain children (and visible) until the end of the frame while `sprites`/`hp_bars` dicts are cleared and repopulated. A `float_text` or `update_stats` in that window resolves against the *new* dict entries while the *old* sprites are still on screen. **Fix:** call `remove_child` + `queue_free` so the old nodes leave the tree immediately.
+
+### M10 — `tools/make_ui.py` writes to a CWD-relative path, unlike its siblings
+**`tools/make_ui.py:37`**
+
+```python
+f(st).save(f"assets/ui/btn_{name}_{st}.png")
 ```
 
----
-
-## 3. MEDIUM (consider fixing)
-
-### M1 — Menu rebuilds use `queue_free()` and immediately re-add children to the same parent
-`scripts/battle_ui.gd:139-140, 307-309`, `scripts/shop_menu.gd:92-93`, `scripts/inventory_menu.gd:44-45`, `scripts/altar_menu.gd:49-53`
-
-`queue_free()` defers removal to the end of the frame, so for one frame the parent contains both the old and the new children. In `battle_ui._show_list` this means duplicate skill buttons are laid out and the old button may still hold focus when the new one is created. `battle_ui.update_stats` (`:254`, `:262`) clears and refills the status/intent rows every time — this flicker happens on *every* turn.
-
-**Fix:** use `remove_child(n); n.queue_free()` for the immediate detach, or reuse the existing buttons instead of recreating them.
-
-### M2 — `battle_ui._apply_button_style` replaces the project theme, losing the Jersey 10 font
-`scripts/battle_ui.gd:71-85`
-
-Assigning `theme = th` (a fresh `Theme` with only styleboxes) to `BattleUI` makes that subtree use `th`. Since `th.default_font` is null, the battle buttons fall back to the engine default font instead of the project-wide `Jersey10` set in `assets/theme.tres:50`. The result is a visible font inconsistency between the battle panel and every other menu.
-
-**Fix:** copy the font over — `th.default_font = ThemeDB.get_default_theme().default_font` won't help; instead set `th.default_font = load("res://assets/fonts/Jersey10.ttf")` or apply the styleboxes to a duplicated project theme: `var th = get_theme().duplicate()`.
-
-### M3 — `battle_system` dereferences `ui` even though `_ready` tolerates it being missing
-`scripts/battle_system.gd:27-33, 51-56, 85, 94, 126, 143, 218, 231, 250`
-
-`_ready` does `push_error("BattleSystem: UI no encontrada")` and continues; `start_battle` does the same and continues into `next_turn()`. The very next line in `next_turn` is `ui.update_stats()` → null-instance crash. The error path exists but is not actually handled.
-
-**Fix:** `if ui == null: is_battle_active = false; return` in `start_battle`.
-
-### M4 — `next_turn()` divides by `turn_order.size()` without guarding against an empty order
-`scripts/battle_system.gd:71`
-
-```gdscript
-current_turn_index = (current_turn_index + 1) % turn_order.size()
-```
-
-`turn_order` is only populated by `calculate_turn_order()`, which is called once in `start_battle`. If `start_battle` is ever called with empty teams (or a team is cleared on death), this is a division-by-zero crash.
-
-**Fix:** `if turn_order.is_empty(): return` at the top of `next_turn`.
-
-### M5 — `player_use_skill` accepts an invalid target index; `-1` silently wraps to the last enemy
-`scripts/battle_system.gd:135-147`
-
-`first_alive_enemy()` returns `-1` when no enemy is alive (`battle_system.gd:110-114`). `_on_skill_selected` (`:352-357`) passes that straight into `player_use_skill` → `enemy_team[-1]`. In GDScript, `-1` is a *valid* index (the last element), so no crash occurs — but the skill is resolved against a dead enemy and the MP is still spent. The same applies to `player_attack(target_index)` at `:121`.
-
-**Fix:** validate the index in both entry points:
-```gdscript
-if target_index < 0 or target_index >= enemy_team.size(): return
-```
-
-### M6 — Level reaches into `battle_system`'s internals instead of using an API
-`scripts/level.gd:625` (`battle_system.gold_mult`), `:807` (`battle_system.ui.set_backdrop`), `:825` (`battle_system.ui.visible = false`), `:833` (`battle_system.enemy_team.size()`)
-
-The level reaches into the battle system's public fields and its UI child directly. This couples the two nodes tightly and means `battle_system.ui` is dereferenced without a null check (see M3).
-
-**Fix:** add narrow methods on `BattleSystem` — `set_gold_mult()`, `set_backdrop()`, `hide_ui()`, `enemy_count()`.
-
-### M7 — `_free_pos` can return a position inside a wall
-`scripts/level.gd:379-385`
-
-If none of the 60 attempts satisfies the constraints, the loop exits with the last random point, which may be inside a `blocked` rect, on top of the player, or off the intended area. Enemies spawned there can be unreachable (the `test_floor_reachability.gd` flood-fill check covers `blocked` but not this fallback).
-
-**Fix:** keep the last *valid* candidate and fall back to `area.get_center()` only if none was ever valid; log a warning.
-
-### M8 — Quest counters are global and never reset per quest
-`scripts/quest_log.gd:19-20`, `scripts/level.gd:771, 832`
-
-`counters["kill"]` accumulates across every quest. The first quest needs 5 kills; the second needs 20 — but the counter already reads 5 when the second quest becomes current, so it is 15 kills easier than intended. The same applies to the `boss` quests (1 → 3 → 6).
-
-**Fix:** store the counter value at claim time and subtract it when the next quest becomes current, or key counters by quest id.
-
-### M9 — `level_offers` can offer a skill the character already knows twice
-`scripts/upgrades.gd:24-32`
-
-The filter uses `sk.name in known` (a name comparison) while `CharacterData.sync_skills` (`character_data.gd:137`) selects by `unlock_level`. If two distinct skills in a class ever share a name, the level offer will hand out a duplicate. More practically, `Upgrades.apply` (`:40-46`) appends the *same* `SkillData` object that `CharacterData.class_skills` returned — and `class_skills` constructs **new** objects on every call, so the object identity in `c.skills` differs from the one in a later `class_skills()` result. `save_game.gd:43` reconstructs skills by name, which works, but any code comparing skill objects by identity would break.
-
-**Fix:** give `SkillData` a stable `id` and match on that.
+`make_floor1.py` and `make_stairs.py` both resolve paths against `os.path.dirname(__file__)`. `make_ui.py` only works when run from the repo root, and otherwise silently writes the assets into the wrong directory. **Fix:** use the same `os.path.join(os.path.dirname(__file__), "..", "assets", "ui", ...)` pattern, and `os.makedirs(..., exist_ok=True)`.
 
 ---
 
 ## 4. MINOR (nice to have)
 
-### m1 — Dead code
-`scripts/character_data.gd:161` `status_text()`, `scripts/player.gd:93` `get_input_direction()`, `scripts/inventory.gd:23, 29, 32, 35` (`has_item`, `get_weapons`, `get_armors`, `get_accessories`), `scripts/inventory.gd:3` `inventory_updated` signal — none are referenced anywhere in `scripts/` or `tests/`. `Inventory.get_weapons/get_armors/get_accessories` duplicate `ItemData.get_all_*` filtering.
-
-### m2 — `Controls.setup()` hooks `node_added` on the root and never disconnects it
-`scripts/controls.gd:8-12`
-
-`tree.node_added.connect(...)` is guarded by the static `_click_hooked`, so it only ever fires once per process — but the connection is never removed, so in a test harness that creates multiple `SceneTree`s, later trees never get the click sound. The lambda also calls `Sfx.play(tree.root, ...)`, which adds a child to `root` from inside a `node_added` callback — re-entrant on `root` if the button being added is a direct child of `root`.
-
-**Fix:** use `call_deferred` for the `add_child`, and reset `_click_hooked = false` when the tree changes.
-
-### m3 — `add_status` cannot shorten an existing status
-`scripts/character_data.gd:145-146` — `statuses[s] = maxi(turns, statuses.get(s, 0))`. Applying a 1-turn status to one with 3 turns leaves 3. Intentional for stacking buffs, but it means a debuff can never be shortened by a weaker application.
-
-### m4 — `Inventory.remove_item` relies on reference identity
-`scripts/inventory.gd:15-21` — `items.find(item)` compares `ItemData` objects by reference. It happens to work because `ItemData.find_by_id` returns fresh instances and every call site keeps the instance it inserted, but any future refactor that re-resolves items by id will silently fail to remove. A `remove_item_by_id` or an explicit `id` comparison would be more robust.
-
-### m5 — `tools/make_floor1.py` has an O(n²) pure-Python flood fill and dilation
-`tools/make_floor1.py:44-67` — `components()` does a nested Python loop over every pixel for both the dilation (`grow`×`grow` shifted ORs) and the connected-component search. For large source JPEGs this takes minutes.
-
-**Fix:** use `scipy.ndimage.label` / `binary_dilation`, or vectorize the dilation with `numpy.lib.stride_tricks.sliding_window_view`.
-
-### m6 — Unused loop variables
-`scripts/level.gd:343` (`for i in 3:`), `:349` (`for i in 40:`), `:370` (`for i in 10:`), `:595` (`for i in 2:`), `scripts/character_data.gd:252` (`for i in enemy_team.size():`) — GDScript emits an "unused variable" warning for each. Prefix with `_` to silence.
-
-### m7 — `_show_class_select` closures capture the loop variable
-`scripts/level.gd:118-147` — `var data = CharacterData.create_for_class(c)` is declared *inside* the loop, so each iteration's closure captures its own instance. This is correct in GDScript, but it is fragile-looking enough that a future refactor moving `data` outside the loop would silently break class selection. Worth a comment.
-
-### m8 — `Music.play` defers both `add_child` and `play`
-`scripts/music.gd:25-29` — `add_child.call_deferred()` followed by `play.call_deferred()`: the two deferred calls are queued in order, but between them the frame boundary can land, producing a one-frame of silence on every track change. Consider `await get_tree().process_frame` after the deferred `add_child`, or simply adding the player to the tree in `_init` of a dedicated autoload.
+- **`scripts/level.gd:722-724`** — `_note()` creates a new `SceneTreeTimer` per message; messages accumulate. Consider reusing a single timer.
+- **`scripts/player.gd:35-36`** — the WASD fallback uses `Input.is_key_pressed(KEY_D)`, which is layout-dependent (AZERTY/Dvorak players get the wrong keys). Prefer physical keycodes via `InputEventKey.physical_keycode`, or drop the fallback and rely on `ui_*` actions.
+- **`scripts/battle_system.gd:212`** — `_power` truncates with `int(base * m)`, so a 15-damage hit under *Sed de Sangre* deals 22 rather than 22.5. Consistent, but worth a comment or `roundi`.
+- **`scripts/dialogues.gd:59-70`** — `matches()` silently returns `false` for an unrecognised `when` key, so a typo in a dialogue condition makes that variant unreachable with no error. Add an `else: push_error(...)` branch.
+- **`scripts/dialogues.gd` ↔ `scripts/level.gd:760`** — the dialogue `do` actions are resolved through a dict in `level.gd` (`acts = {"quest": ..., "rest": ..., "shop": ...}`); a new `do` value in `dialogues.gd` causes a `KeyError` at runtime rather than a compile-time error.
+- **`scripts/meta.gd:29-30`** — `cost(u)` recomputes `u.cost * (level+1)`, but `Meta.UPGRADES` entries are untyped `Dictionary`s; `u.cost` and `u.id` are unvalidated. Consider a small typed structure.
+- **`scripts/sfx.gd:11-17`** — `p.finished.connect(p.queue_free)` never fires if the stream is invalid, leaking the `AudioStreamPlayer`. Consider a fallback or a pool.
+- **`scripts/music.gd:25-29`** — `play()` uses `call_deferred()` for both `add_child` and `play()`; two rapid calls with different keys can restart the same stream twice. Minor audio glitch.
+- **`scripts/shop_menu.gd:90-100`** — `refresh()` uses `queue_free()` on the old sell buttons and immediately appends new ones, so duplicates are visible for one frame.
+- **`scripts/level.gd:431`** — `_make_area(...).get_child(0).visible = false` hides the stairs sprite by reaching into the child hierarchy. Return the sprite or add a parameter instead.
+- **`tests/sim_balance.gd:143-147`** — the simulator equips items without removing them from the inventory (the real game does remove them, `inventory_menu.gd:73`), so the simulation overstates inventory pressure. Also `sim_balance.gd:173` — `meta.streak = 0 if ok else meta.streak` is dead code (`ok` is always `true` there).
+- **`tools/make_floor1.py:9`** — a missing `~/Downloads/nivel1` surfaces as a bare `FileNotFoundError`; a friendly message with the resolved path would help.
 
 ---
 
-## What is genuinely good
+## What the code does well
 
-Worth saying explicitly, because it is unusual:
+Worth preserving in any refactor:
 
-- **No security exposure.** No network calls, no `OS.execute`, no `eval`, no deserialization of untrusted data, no secrets. The only file I/O is `user://save.json` via `JSON`, and the only external input is keyboard/gamepad.
-- **Asset paths all resolve.** I verified every `load()` target in `scripts/` against the filesystem: all `tile_*.png`, `assets/ui/btn_{a,b,c}_*.png`, `assets/sprites/floor1/*`, `assets/sprites/{classes,enemies,npcs}/*`, `assets/audio/*`, `assets/audio/music/*`, and `assets/backgrounds/*` exist. The `BACKDROPS`/`FLOORS` index arithmetic is consistent with the assets on disk.
-- **Good test coverage.** 14 headless test scripts, 130 assertions, covering flow, save/load round-trip, intents-vs-actual-damage, targeting, reachability (flood fill), NPC collision, pacts, meta economy, and content completeness. `test_floor_reachability.gd` generating 60 random floors and flood-filling them is a strong regression net.
-- **Intent/damage parity.** `intent_info()` and the actual attack both route through `preview_damage()`/`_power()`, so the displayed number cannot drift from the applied number — and `test_intents.gd` asserts exactly that.
-- **Encapsulation of the damage formula.** `preview_damage`/`take_damage` centralise defense, the `debil` status, and the floor of 1 damage.
+- **Intent telegraphing is honest** — `battle_system.gd:185-206` computes exactly what the enemy will do, and `tests/test_intents.gd` asserts the previewed damage equals the applied damage. This is the kind of thing that is easy to break silently; it is well covered.
+- **`CharacterData.preview_damage` / `take_damage` share the same code path** (`character_data.gd:176-183`), so the UI can never disagree with the simulation about a hit.
+- **`Pacts.scale_enemy` is pure** and its scaling matrix is verified branch-by-branch in `tests/test_pacts.gd`.
+- **The test suite is unusually good for a game project** — `test_floor_reachability.gd` does a real flood-fill over procedurally generated floors, and `test_shop.gd` checks the gold arithmetic exactly. The infrastructure is sound; it only needs the `assert` → `fail()` conversion from H2 and a CI workflow.
+- **Save/load round-trips are tested** for both the run-state and the meta-only case (`test_run.gd:50-58`, `test_meta.gd:47-54`).
 
 ---
 
-## Suggested order of work
-
-1. **C1** (atomic save) — the only issue with permanent, unrecoverable player-data loss.
-2. **H1 + H2** (softlock + freed-node timer) — both are reachable in normal play (dying, returning to title) and are cheap to fix.
-3. **H3, M3, M4, M5** — null/index guards; a few lines each.
-4. **M1, M2** — visible flicker and the font inconsistency; user-facing polish.
-5. **M8** (quest counters) — a balance question, so it may need a design decision rather than a mechanical fix.
-
-Note that I could not execute the test suite: no `godot` binary is available in this environment (`godot`/`godot4` are not on `PATH` and no Godot app is installed), so all findings above are from static reading, not from running the game or the tests.
+### Suggested order of work
+1. **C1** — atomic save with backup (data loss).
+2. **H1, H2** — save deletion error handling and test exit codes (both are silent-failure classes).
+3. **H3, H4, H5** — the three gameplay correctness bugs.
+4. **M1, M6** — the two measurable performance problems.
+5. **M2, M3** — structural cleanups, best done on their own branch.
